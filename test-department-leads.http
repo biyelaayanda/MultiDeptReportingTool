@@ -1,0 +1,103 @@
+### Create Department Lead Users for Testing
+
+### 1. Create IT Department Lead
+POST http://localhost:5111/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "it-lead",
+  "email": "it-lead@example.com",
+  "password": "ITLead123!",
+  "role": "DepartmentLead",
+  "department": "IT"
+}
+
+### 2. Create Finance Department Lead  
+POST http://localhost:5111/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "finance-lead",
+  "email": "finance-lead@example.com",
+  "password": "FinanceLead123!",
+  "role": "DepartmentLead",
+  "department": "Finance"
+}
+
+### 3. Create HR Department Lead
+POST http://localhost:5111/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "hr-lead",
+  "email": "hr-lead@example.com",
+  "password": "HRLead123!",
+  "role": "DepartmentLead",
+  "department": "HR"
+}
+
+### 4. Create Operations Department Lead
+POST http://localhost:5111/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "operations-lead",
+  "email": "operations-lead@example.com",
+  "password": "OpsLead123!",
+  "role": "DepartmentLead",
+  "department": "Operations"
+}
+
+### 5. Create Compliance Department Lead
+POST http://localhost:5111/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "compliance-lead",
+  "email": "compliance-lead@example.com",
+  "password": "CompLead123!",
+  "role": "DepartmentLead",
+  "department": "Compliance"
+}
+
+### 6. Test IT Department Lead Login
+POST http://localhost:5111/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "it-lead",
+  "password": "ITLead123!"
+}
+
+### 7. Test Department Lead Dashboard Access (Replace {{token}} with JWT from login)
+GET http://localhost:5111/api/IT/dashboard
+Authorization: Bearer {{token}}
+
+### 8. Test Department Analytics
+GET http://localhost:5111/api/IT/analytics?fromDate=2025-01-01&toDate=2025-08-06
+Authorization: Bearer {{token}}
+
+### 9. Test Department Reports  
+GET http://localhost:5111/api/IT/reports?page=1&pageSize=10&status=
+Authorization: Bearer {{token}}
+
+### 10. Test Export for Department Lead
+POST http://localhost:5111/api/export/generate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "ReportType": "department-dashboard",
+  "Format": "pdf",
+  "StartDate": "2025-01-01T00:00:00Z",
+  "EndDate": "2025-08-06T23:59:59Z",
+  "Departments": ["IT"],
+  "IncludeFields": [],
+  "IncludeCharts": true,
+  "IncludeSummary": true,
+  "FileName": "it-dashboard-2025-08-06.pdf",
+  "CustomFilters": {
+    "department": "IT",
+    "timeframe": "30d"
+  }
+}
