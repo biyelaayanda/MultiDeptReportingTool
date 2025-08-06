@@ -41,6 +41,33 @@ namespace MultiDeptReportingTool.Controllers
             }
         }
 
+        [HttpGet("types")]
+        public IActionResult GetReportTypes()
+        {
+            try
+            {
+                var reportTypes = new[]
+                {
+                    "Monthly Report",
+                    "Quarterly Report", 
+                    "Annual Report",
+                    "Financial Report",
+                    "Performance Report",
+                    "Sales Report",
+                    "Marketing Report",
+                    "Operations Report",
+                    "HR Report",
+                    "Custom Report"
+                };
+
+                return Ok(reportTypes);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, error = ex.Message });
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetReport(int id)
         {
