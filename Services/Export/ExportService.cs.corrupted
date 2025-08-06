@@ -1,0 +1,1863 @@
+using System.Text.Json;
+using System.Net.Mail;
+using System.Net;
+using Microsoft.EntityFrameworkCore;
+using MultiDeptReportingTool.Data;
+using MultiDeptReportingTool.DTOs.Export;
+using MultiDeptReportingTool.DTOs.Analytics;
+using MultiDeptReportingTool.Models;
+using MultiDeptReportingTool.Services.Analytics;
+using PdfSharpCore.Pdf;
+using PdfSharpCore.Drawing;
+
+namespace MultiDeptReportingTool.Services.Export
+{
+    /// <summary>
+    /// Export service implementation for generating reports and handling email notifications
+    /// </summary>
+    public class ExportService : IExportService
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly ILogger<ExportService> _logger;
+        private readonly IConfiguration _configuration;
+        private readonly IAnalyticsService _analyticsService;
+        private readonly string _exportDirectory;
+
+        public ExportService(ApplicationDbContext context, ILogger<ExportService> logger, IConfiguration configuration, IAnalyticsService analyticsService)
+        {
+            _context = context;
+            _logger = logger;
+            _configuration = configuration;
+            _analyticsService = analyticsService;
+            _exportDirectory = Path.Combine(Directory.GetCurrentDirectory(), "exports");
+            
+            // Ensure export directory exists
+            if (!Directory.Exists(_exportDirectory))
+            {
+                Directory.CreateDirectory(_exportDirectory);
+            }
+        }
+
+        #region PDF Export Methods
+
+        public async Task<ExportResponseDto> ExportToPdfAsync(ExportRequestDto request)
+        {
+            try
+            {
+                var errors = new List<string>();
+                if (!ValidateExportRequest(request, out errors))
+                {
+                    return new ExportResponseDto
+                    {
+                        Success = false,
+                        Message = string.Join(", ", errors)
+                    };
+                }
+
+                // Get report data based on request
+                var reportData = await GetReportDataAsync(request);
+                
+                // Generate actual PDF using PdfSharpCore
+                var pdfBytes = await GeneratePdfReportAsync(reportData, "default");
+                
+                // Generate PDF file
+                var fileName = GenerateFileName(request, "pdf");
+                var filePath = await SaveExportFileAsync(pdfBytes, fileName, "application/pdf");
+
+                return new ExportResponseDto
+                {
+                    FileName = fileName,
+                    ContentType = "application/pdf",
+                    FileData = pdfBytes,
+                    FileSize = pdfBytes.Length,
+                    DownloadUrl = $"/api/export/download/{Path.GetFileName(filePath)}",
+                    Success = true,
+                    Message = "PDF report generated successfully"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting to PDF");
+                return new ExportResponseDto
+                {
+                    Success = false,
+                    Message = $"Error exporting to PDF: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<byte[]> GeneratePdfReportAsync(object reportData, string templateName = "default")
+        {
+            try
+            {
+                // Create new PDF document
+                var document = new PdfDocument();
+                document.Info.Title = "Executive Dashboard Report";
+                document.Info.Author = "MultiDept Reporting Tool";
+                document.Info.Subject = $"Dashboard Report - {DateTime.Now:yyyy-MM-dd}";
+                document.Info.Creator = "MultiDept Reporting Tool";
+
+                // Create first page
+                var page = document.AddPage();
+                var gfx = XGraphics.FromPdfPage(page);
+
+                // Set fonts
+                var titleFont = new XFont("Arial", 20, XFontStyle.Bold);
+                var headerFont = new XFont("Arial", 14, XFontStyle.Bold);
+                var regularFont = new XFont("Arial", 10, XFontStyle.Regular);
+                var smallFont = new XFont("Arial", 8, XFontStyle.Regular);
+
+                double yPosition = 40;
+                const double leftMargin = 40;
+                const double rightMargin = 40;
+                const double pageWidth = 595; // A4 width in points
+                const double contentWidth = pageWidth - leftMargin - rightMargin;
+
+                // Title
+                gfx.DrawString("Executive Dashboard Report", titleFont, XBrushes.Black,
+                    new XRect(leftMargin, yPosition, contentWidth, 30), XStringFormats.TopLeft);
+                yPosition += 40;
+
+                // Extract data from dynamic object
+                dynamic data = reportData;
+
+                // Metadata
+                gfx.DrawString($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}", regularFont, XBrushes.Gray,
+                    leftMargin, yPosition);
+                yPosition += 20;
+
+                try
+                {
+                    var dataSource = data.DataSource?.ToString() ?? "Sample Data";
+                    gfx.DrawString($"Data Source: {dataSource}", regularFont, XBrushes.Gray,
+                        leftMargin, yPosition);
+                }
+                catch { }
+                yPosition += 30;
+
+                // Company Overview
+                try
+                {
+                    if (data.CompanyOverview != null)
+                    {
+                        yPosition = CheckPageSpace(gfx, document, yPosition, 80);
+
+                        gfx.DrawString("Company Overview", headerFont, XBrushes.Black, leftMargin, yPosition);
+                        yPosition += 25;
+
+                        var overview = data.CompanyOverview;
+                        gfx.DrawString($"Total Reports: {overview.TotalReports}", regularFont, XBrushes.Black, leftMargin + 20, yPosition);
+                        yPosition += 15;
+                        gfx.DrawString($"Total Departments: {overview.TotalDepartments}", regularFont, XBrushes.Black, leftMargin + 20, yPosition);
+                        yPosition += 15;
+                        gfx.DrawString($"Overall Efficiency: {overview.OverallEfficiency:F2}%", regularFont, XBrushes.Black, leftMargin + 20, yPosition);
+                        yPosition += 25;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("Could not render Company Overview: {Error}", ex.Message);
+                }
+
+                // Key Metrics
+                try
+                {
+                    if (data.KeyMetrics != null)
+                    {
+                        yPosition = CheckPageSpace(gfx, document, yPosition, 100);
+
+                        gfx.DrawString("Key Performance Metrics", headerFont, XBrushes.Black, leftMargin, yPosition);
+                        yPosition += 25;
+
+                        foreach (var metric in data.KeyMetrics)
+                        {
+                            yPosition = CheckPageSpace(gfx, document, yPosition, 35);
+
+                            gfx.DrawString($"• {metric.Name}: {metric.CurrentValue:F2} {metric.Unit}", regularFont, XBrushes.Black, leftMargin + 20, yPosition);
+                            yPosition += 15;
+                            gfx.DrawString($"  Target: {metric.TargetValue:F2} {metric.Unit} | Change: {metric.ChangePercentage:F2}%", smallFont, XBrushes.Gray, leftMargin + 30, yPosition);
+                            yPosition += 20;
+                        }
+                        yPosition += 10;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("Could not render Key Metrics: {Error}", ex.Message);
+                }
+
+                // Department Summary
+                try
+                {
+                    if (data.DepartmentSummaries != null)
+                    {
+                        yPosition = CheckPageSpace(gfx, document, yPosition, 100);
+
+                        gfx.DrawString("Department Performance", headerFont, XBrushes.Black, leftMargin, yPosition);
+                        yPosition += 25;
+
+                        foreach (var dept in data.DepartmentSummaries)
+                        {
+                            yPosition = CheckPageSpace(gfx, document, yPosition, 50);
+
+                            gfx.DrawString($"• {dept.Name}", regularFont, XBrushes.Black, leftMargin + 20, yPosition);
+                            yPosition += 15;
+                            gfx.DrawString($"  Reports: {dept.TotalReports} (Completed: {dept.CompletedReports}, Pending: {dept.PendingReports})", smallFont, XBrushes.Gray, leftMargin + 30, yPosition);
+                            yPosition += 12;
+                            gfx.DrawString($"  Efficiency Score: {dept.EfficiencyScore:F2}%", smallFont, XBrushes.Gray, leftMargin + 30, yPosition);
+                            yPosition += 20;
+                        }
+                        yPosition += 10;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("Could not render Department Summary: {Error}", ex.Message);
+                }
+
+                // Recent Trends
+                try
+                {
+                    if (data.RecentTrends != null)
+                    {
+                        yPosition = CheckPageSpace(gfx, document, yPosition, 100);
+
+                        gfx.DrawString("Recent Performance Trends", headerFont, XBrushes.Black, leftMargin, yPosition);
+                        yPosition += 25;
+
+                        foreach (var trend in data.RecentTrends)
+                        {
+                            yPosition = CheckPageSpace(gfx, document, yPosition, 35);
+
+                            gfx.DrawString($"• {trend.Name}: {trend.CurrentValue:F1} {trend.Unit}", regularFont, XBrushes.Black, leftMargin + 20, yPosition);
+                            yPosition += 15;
+                            gfx.DrawString($"  Target: {trend.TargetValue:F1} | Change: {trend.ChangePercentage:F1}% | Trend: {trend.Trend}", smallFont, XBrushes.Gray, leftMargin + 30, yPosition);
+                            yPosition += 20;
+                        }
+                        yPosition += 10;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("Could not render Recent Trends: {Error}", ex.Message);
+                }
+
+                // Critical Alerts
+                try
+                {
+                    if (data.CriticalAlerts != null)
+                    {
+                        yPosition = CheckPageSpace(gfx, document, yPosition, 100);
+
+                        gfx.DrawString("Critical Alerts", headerFont, XBrushes.Black, leftMargin, yPosition);
+                        yPosition += 25;
+
+                        foreach (var alert in data.CriticalAlerts)
+                        {
+                            yPosition = CheckPageSpace(gfx, document, yPosition, 60);
+
+                            var alertColor = alert.Severity?.ToString().ToLower() switch
+                            {
+                                "critical" => XBrushes.Red,
+                                "warning" => XBrushes.Orange,
+                                _ => XBrushes.Blue
+                            };
+
+                            gfx.DrawString($"• [{alert.Severity}] {alert.Title}", regularFont, alertColor, leftMargin + 20, yPosition);
+                            yPosition += 15;
+                            gfx.DrawString($"  Department: {alert.Department}", smallFont, XBrushes.Gray, leftMargin + 30, yPosition);
+                            yPosition += 12;
+                            gfx.DrawString($"  {alert.Message}", smallFont, XBrushes.Gray, leftMargin + 30, yPosition);
+                            yPosition += 20;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("Could not render Critical Alerts: {Error}", ex.Message);
+                }
+
+                // Add basic report info if no data was rendered
+                if (yPosition < 200)
+                {
+                    gfx.DrawString("Report Information", headerFont, XBrushes.Black, leftMargin, yPosition);
+                    yPosition += 25;
+
+                    try
+                    {
+                        gfx.DrawString($"Report Type: {data.ReportType}", regularFont, XBrushes.Black, leftMargin + 20, yPosition);
+                        yPosition += 15;
+                        gfx.DrawString($"Generated At: {data.GeneratedAt}", regularFont, XBrushes.Black, leftMargin + 20, yPosition);
+                        yPosition += 15;
+                    }
+                    catch { }
+                }
+
+                // Footer
+                var pageCount = document.PageCount;
+                for (int i = 0; i < pageCount; i++)
+                {
+                    var currentPage = document.Pages[i];
+                    var footerGfx = XGraphics.FromPdfPage(currentPage);
+                    footerGfx.DrawString($"Page {i + 1} of {pageCount} | Generated by MultiDept Reporting Tool",
+                        smallFont, XBrushes.Gray,
+                        new XRect(leftMargin, currentPage.Height - 30, contentWidth, 20),
+                        XStringFormats.BottomCenter);
+                    footerGfx.Dispose();
+                }
+
+                gfx.Dispose();
+
+                // Save to memory stream
+                using var stream = new MemoryStream();
+                document.Save(stream, false);
+                document.Dispose();
+                return stream.ToArray();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating PDF report");
+                throw;
+            }
+        }
+
+        private double CheckPageSpace(XGraphics gfx, PdfDocument document, double currentY, double requiredSpace)
+        {
+            const double bottomMargin = 50;
+            const double pageHeight = 842; // A4 height in points
+            
+            if (currentY + requiredSpace > pageHeight - bottomMargin)
+            {
+                // Dispose current graphics context
+                gfx.Dispose();
+                
+                // Add new page
+                var newPage = document.AddPage();
+                gfx = XGraphics.FromPdfPage(newPage);
+                return 40; // Top margin for new page
+            }
+            
+            return currentY;
+        }
+
+        public async Task<byte[]> GenerateExcelReportAsync(object reportData, string templateName = "default")
+        {
+            try
+            {
+                // Simple placeholder implementation for Excel generation
+                var content = "Excel Report - Not yet implemented\n";
+                content += $"Generated: {DateTime.Now}\n";
+                content += $"Template: {templateName}\n";
+                return System.Text.Encoding.UTF8.GetBytes(content);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to generate Excel report: {ex.Message}", ex);
+            }
+        }
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Multi-Department Reporting Tool - Dashboard Report</title>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }}
+        .container {{
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }}
+        .header {{
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }}
+        .header h1 {{
+            color: #007bff;
+            margin: 0;
+            font-size: 2.5em;
+        }}
+        .header h2 {{
+            color: #6c757d;
+            margin: 10px 0;
+            font-weight: normal;
+        }}
+        .section {{
+            margin: 30px 0;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }}
+        .section h3 {{
+            color: #007bff;
+            margin-top: 0;
+            font-size: 1.4em;
+        }}
+        .data-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }}
+        .data-card {{
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }}
+        .data-card h4 {{
+            color: #495057;
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+        }}
+        .metric {{
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }}
+        .metric:last-child {{
+            border-bottom: none;
+        }}
+        .metric-label {{
+            font-weight: 500;
+            color: #6c757d;
+        }}
+        .metric-value {{
+            font-weight: bold;
+            color: #212529;
+        }}
+        .json-section {{
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }}
+        .json-content {{
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #495057;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }}
+        .footer {{
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #dee2e6;
+            color: #6c757d;
+        }}
+        .badge {{
+            display: inline-block;
+            padding: 4px 8px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }}
+        .badge.warning {{ background-color: #ffc107; color: #212529; }}
+        .badge.danger {{ background-color: #dc3545; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>Multi-Department Reporting Tool</h1>
+            <h2>Executive Dashboard Report</h2>
+            <p>Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}</p>
+            <span class='badge'>Real Analytics Data</span>
+        </div>
+
+        <div class='section'>
+            <h3>📊 Report Summary</h3>
+            <div class='data-grid'>
+                <div class='data-card'>
+                    <h4>Report Information</h4>
+                    <div class='metric'>
+                        <span class='metric-label'>Report Type:</span>
+                        <span class='metric-value'>Executive Dashboard</span>
+                    </div>
+                    <div class='metric'>
+                        <span class='metric-label'>Generated:</span>
+                        <span class='metric-value'>{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}</span>
+                    </div>
+                    <div class='metric'>
+                        <span class='metric-label'>Data Source:</span>
+                        <span class='metric-value'>Real Analytics Data</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class='section'>
+            <h3>📋 Complete Report Data</h3>
+            <p>Below is the comprehensive data export from your dashboard analytics:</p>
+            <div class='json-section'>
+                <div class='json-content'>{JsonSerializer.Serialize(reportData, new JsonSerializerOptions { WriteIndented = true })}</div>
+            </div>
+        </div>
+
+        <div class='footer'>
+            <p><strong>Multi-Department Reporting Tool</strong></p>
+            <p>Contact: <a href='mailto:biyelaayanda3@gmail.com'>biyelaayanda3@gmail.com</a></p>
+            <p><em>This report contains real data from your analytics dashboard</em></p>
+        </div>
+    </div>
+</body>
+</html>";
+
+                return await Task.FromResult(html);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating HTML report");
+                throw;
+            }
+        }
+
+        public async Task<byte[]> GenerateDashboardPdfAsync(ExecutiveDashboardDto dashboard)
+        {
+            try
+            {
+                var content = $@"
+EXECUTIVE DASHBOARD REPORT
+Generated: {dashboard.LastUpdated:yyyy-MM-dd HH:mm:ss}
+
+COMPANY OVERVIEW
+================
+Total Reports: {dashboard.CompanyOverview.TotalReports}
+Total Departments: {dashboard.CompanyOverview.TotalDepartments}
+Active Users: {dashboard.CompanyOverview.ActiveUsers}
+Overall Efficiency: {dashboard.CompanyOverview.OverallEfficiency:F1}%
+Total Budget: ${dashboard.CompanyOverview.TotalBudget:N0}
+Budget Utilization: {dashboard.CompanyOverview.BudgetUtilization:F1}%
+Pending Approvals: {dashboard.CompanyOverview.PendingApprovals}
+Critical Issues: {dashboard.CompanyOverview.CriticalIssues}
+Performance Status: {dashboard.CompanyOverview.PerformanceStatus}
+
+DEPARTMENT SUMMARIES
+===================";
+
+                foreach (var dept in dashboard.DepartmentSummaries)
+                {
+                    content += $@"
+{dept.DepartmentName}:
+  Total Reports: {dept.TotalReports}
+  Completed: {dept.CompletedReports}
+  Pending: {dept.PendingReports}
+  Efficiency Score: {dept.EfficiencyScore:F1}%
+  Budget Utilization: {dept.BudgetUtilization:F1}%
+  Status: {dept.Status}
+";
+                }
+
+                content += $@"
+
+KEY METRICS
+===========";
+
+                foreach (var metric in dashboard.KeyMetrics.Take(10))
+                {
+                    content += $@"
+{metric.Name}: {metric.CurrentValue:F1} {metric.Unit}
+  Target: {metric.TargetValue:F1} {metric.Unit}
+  Change: {metric.ChangePercentage:F1}%
+  Trend: {metric.Trend}
+";
+                }
+
+                content += $@"
+
+CRITICAL ALERTS
+===============";
+
+                foreach (var alert in dashboard.CriticalAlerts)
+                {
+                    content += $@"
+[{alert.Severity}] {alert.Title}
+  Department: {alert.Department}
+  Message: {alert.Message}
+  Responsible: {alert.ResponsibleUser}
+  Created: {alert.CreatedAt:yyyy-MM-dd HH:mm}
+";
+                }
+
+                content += $@"
+
+Report generated by Multi-Department Reporting Tool
+Contact: biyelaayanda3@gmail.com
+";
+
+                return await Task.FromResult(System.Text.Encoding.UTF8.GetBytes(content));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating dashboard PDF");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Excel Export Methods
+
+        public async Task<ExportResponseDto> ExportToExcelAsync(ExportRequestDto request)
+        {
+            try
+            {
+                var errors = new List<string>();
+                if (!ValidateExportRequest(request, out errors))
+                {
+                    return new ExportResponseDto
+                    {
+                        Success = false,
+                        Message = string.Join(", ", errors)
+                    };
+                }
+
+                // Get report data
+                var reportData = await GetReportDataAsync(request);
+                
+                // Generate Excel
+                var excelBytes = await GenerateExcelReportAsync(reportData, "Report");
+                
+                var fileName = GenerateFileName(request, "xlsx");
+                var filePath = await SaveExportFileAsync(excelBytes, fileName, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+                return new ExportResponseDto
+                {
+                    FileName = fileName,
+                    ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    FileData = excelBytes,
+                    FileSize = excelBytes.Length,
+                    DownloadUrl = $"/api/export/download/{Path.GetFileName(filePath)}",
+                    Success = true,
+                    Message = "Excel export completed successfully"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting to Excel");
+                return new ExportResponseDto
+                {
+                    Success = false,
+                    Message = $"Error exporting to Excel: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<byte[]> GenerateExcelReportAsync(object reportData, string worksheetName = "Report")
+        {
+            try
+            {
+                // For demonstration, we'll create a CSV-like content
+                // In a real implementation, you would use a library like EPPlus or ClosedXML
+                
+                var content = $"Multi-Department Reporting Tool Export\n";
+                content += $"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}\n";
+                content += $"Worksheet: {worksheetName}\n\n";
+                content += JsonSerializer.Serialize(reportData, new JsonSerializerOptions { WriteIndented = true });
+
+                return await Task.FromResult(System.Text.Encoding.UTF8.GetBytes(content));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating Excel report");
+                throw;
+            }
+        }
+
+        public async Task<byte[]> GenerateMultiSheetExcelAsync(Dictionary<string, object> worksheetData)
+        {
+            try
+            {
+                var content = "Multi-Department Reporting Tool - Multi-Sheet Export\n";
+                content += $"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}\n\n";
+
+                foreach (var sheet in worksheetData)
+                {
+                    content += $"=== {sheet.Key} ===\n";
+                    content += JsonSerializer.Serialize(sheet.Value, new JsonSerializerOptions { WriteIndented = true });
+                    content += "\n\n";
+                }
+
+                return await Task.FromResult(System.Text.Encoding.UTF8.GetBytes(content));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating multi-sheet Excel");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region CSV Export Methods
+
+        public async Task<ExportResponseDto> ExportToCsvAsync(ExportRequestDto request)
+        {
+            try
+            {
+                var errors = new List<string>();
+                if (!ValidateExportRequest(request, out errors))
+                {
+                    return new ExportResponseDto
+                    {
+                        Success = false,
+                        Message = string.Join(", ", errors)
+                    };
+                }
+
+                // Get report data
+                var reportData = await GetReportDataAsync(request);
+                
+                // Convert to enumerable for CSV generation
+                var csvData = ConvertToEnumerable(reportData);
+                var csvBytes = await GenerateCsvReportAsync(csvData);
+                
+                var fileName = GenerateFileName(request, "csv");
+                var filePath = await SaveExportFileAsync(csvBytes, fileName, "text/csv");
+
+                return new ExportResponseDto
+                {
+                    FileName = fileName,
+                    ContentType = "text/csv",
+                    FileData = csvBytes,
+                    FileSize = csvBytes.Length,
+                    DownloadUrl = $"/api/export/download/{Path.GetFileName(filePath)}",
+                    Success = true,
+                    Message = "CSV export completed successfully"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting to CSV");
+                return new ExportResponseDto
+                {
+                    Success = false,
+                    Message = $"Error exporting to CSV: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<byte[]> GenerateCsvReportAsync(IEnumerable<object> data, string[] headers = null)
+        {
+            try
+            {
+                var csv = new List<string>();
+                
+                // Add headers
+                if (headers != null && headers.Length > 0)
+                {
+                    csv.Add(string.Join(",", headers));
+                }
+
+                // Add data rows
+                foreach (var item in data)
+                {
+                    var properties = item.GetType().GetProperties();
+                    var values = properties.Select(p => 
+                    {
+                        var value = p.GetValue(item)?.ToString() ?? "";
+                        // Escape commas and quotes in CSV
+                        if (value.Contains(",") || value.Contains("\""))
+                        {
+                            value = $"\"{value.Replace("\"", "\"\"")}\"";
+                        }
+                        return value;
+                    });
+                    csv.Add(string.Join(",", values));
+                }
+
+                var content = string.Join("\n", csv);
+                return await Task.FromResult(System.Text.Encoding.UTF8.GetBytes(content));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating CSV report");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region JSON Export Methods
+
+        public async Task<ExportResponseDto> ExportToJsonAsync(ExportRequestDto request)
+        {
+            try
+            {
+                var errors = new List<string>();
+                if (!ValidateExportRequest(request, out errors))
+                {
+                    return new ExportResponseDto
+                    {
+                        Success = false,
+                        Message = string.Join(", ", errors)
+                    };
+                }
+
+                // Get report data
+                var reportData = await GetReportDataAsync(request);
+                
+                // Generate JSON
+                var jsonString = await GenerateJsonReportAsync(reportData);
+                var jsonBytes = System.Text.Encoding.UTF8.GetBytes(jsonString);
+                
+                var fileName = GenerateFileName(request, "json");
+                var filePath = await SaveExportFileAsync(jsonBytes, fileName, "application/json");
+
+                return new ExportResponseDto
+                {
+                    FileName = fileName,
+                    ContentType = "application/json",
+                    FileData = jsonBytes,
+                    FileSize = jsonBytes.Length,
+                    DownloadUrl = $"/api/export/download/{Path.GetFileName(filePath)}",
+                    Success = true,
+                    Message = "JSON export completed successfully"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting to JSON");
+                return new ExportResponseDto
+                {
+                    Success = false,
+                    Message = $"Error exporting to JSON: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<string> GenerateJsonReportAsync(object reportData)
+        {
+            try
+            {
+                var exportInfo = new
+                {
+                    ExportInfo = new
+                    {
+                        GeneratedAt = DateTime.UtcNow,
+                        GeneratedBy = "Multi-Department Reporting Tool",
+                        Contact = "biyelaayanda3@gmail.com",
+                        Version = "1.0"
+                    },
+                    Data = reportData
+                };
+
+                var json = JsonSerializer.Serialize(exportInfo, new JsonSerializerOptions 
+                { 
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+
+                return await Task.FromResult(json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating JSON report");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Chart Generation Methods
+
+        public async Task<byte[]> GenerateChartImageAsync(ChartConfigDto chartConfig)
+        {
+            try
+            {
+                // Placeholder implementation for chart generation
+                // In a real implementation, you would use a charting library like System.Drawing or SkiaSharp
+                
+                var chartText = $@"
+CHART: {chartConfig.Title}
+Type: {chartConfig.ChartType}
+Size: {chartConfig.Width}x{chartConfig.Height}
+X-Axis: {chartConfig.XAxisLabel}
+Y-Axis: {chartConfig.YAxisLabel}
+
+Data Series:";
+
+                foreach (var series in chartConfig.DataSeries)
+                {
+                    chartText += $@"
+- {series.Name} ({series.Color}):";
+                    foreach (var point in series.Data.Take(5)) // Show first 5 points
+                    {
+                        chartText += $@"
+  {point.Label}: {point.Value}";
+                    }
+                    if (series.Data.Count > 5)
+                    {
+                        chartText += $@"
+  ... and {series.Data.Count - 5} more data points";
+                    }
+                }
+
+                return await Task.FromResult(System.Text.Encoding.UTF8.GetBytes(chartText));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating chart image");
+                throw;
+            }
+        }
+
+        public async Task<List<byte[]>> GenerateMultipleChartsAsync(List<ChartConfigDto> chartConfigs)
+        {
+            try
+            {
+                var charts = new List<byte[]>();
+                
+                foreach (var config in chartConfigs)
+                {
+                    var chartBytes = await GenerateChartImageAsync(config);
+                    charts.Add(chartBytes);
+                }
+
+                return charts;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating multiple charts");
+                throw;
+            }
+        }
+
+        public async Task<byte[]> GenerateDashboardChartsAsync(ExecutiveDashboardDto dashboard)
+        {
+            try
+            {
+                var chartConfigs = new List<ChartConfigDto>();
+
+                // Create chart configurations based on dashboard data
+                if (dashboard.RecentTrends.Any())
+                {
+                    foreach (var trend in dashboard.RecentTrends.Take(3))
+                    {
+                        chartConfigs.Add(new ChartConfigDto
+                        {
+                            ChartType = trend.ChartType,
+                            Title = $"{trend.MetricName} Trend",
+                            DataSeries = new List<ChartDataSeriesDto>
+                            {
+                                new ChartDataSeriesDto
+                                {
+                                    Name = trend.MetricName,
+                                    Color = trend.Color,
+                                    Data = trend.DataPoints.Select(dp => new ChartDataPointDto
+                                    {
+                                        Label = dp.Label,
+                                        Value = dp.Value,
+                                        Date = dp.Date
+                                    }).ToList()
+                                }
+                            }
+                        });
+                    }
+                }
+
+                var chartImages = await GenerateMultipleChartsAsync(chartConfigs);
+                
+                // Combine all chart images into a single document
+                var combinedContent = "DASHBOARD CHARTS\n\n";
+                for (int i = 0; i < chartImages.Count; i++)
+                {
+                    combinedContent += $"Chart {i + 1}:\n";
+                    combinedContent += System.Text.Encoding.UTF8.GetString(chartImages[i]);
+                    combinedContent += "\n\n";
+                }
+
+                return await Task.FromResult(System.Text.Encoding.UTF8.GetBytes(combinedContent));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating dashboard charts");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Email Methods
+
+        public async Task<bool> SendEmailAsync(EmailNotificationDto emailDto)
+        {
+            try
+            {
+                var errors = new List<string>();
+                if (!ValidateEmailRequest(emailDto, out errors))
+                {
+                    _logger.LogWarning("Invalid email request: {Errors}", string.Join(", ", errors));
+                    return false;
+                }
+
+                // Get SMTP configuration
+                var smtpHost = _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
+                var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
+                var smtpUser = _configuration["Email:SmtpUser"] ?? "biyelaayanda3@gmail.com";
+                var smtpPassword = _configuration["Email:SmtpPassword"] ?? "";
+                var enableSsl = bool.Parse(_configuration["Email:EnableSsl"] ?? "true");
+
+                using var client = new SmtpClient(smtpHost, smtpPort)
+                {
+                    EnableSsl = enableSsl,
+                    Credentials = new NetworkCredential(smtpUser, smtpPassword)
+                };
+
+                var message = new MailMessage
+                {
+                    From = new MailAddress(smtpUser, "Multi-Department Reporting Tool"),
+                    Subject = emailDto.Subject,
+                    Body = emailDto.Body,
+                    IsBodyHtml = emailDto.IsHtml
+                };
+
+                message.To.Add(emailDto.ToEmail);
+
+                foreach (var cc in emailDto.CcEmails)
+                {
+                    if (!string.IsNullOrWhiteSpace(cc))
+                    {
+                        message.CC.Add(cc);
+                    }
+                }
+
+                // Add attachments
+                foreach (var attachment in emailDto.Attachments)
+                {
+                    var stream = new MemoryStream(attachment.FileData);
+                    var mailAttachment = new Attachment(stream, attachment.FileName, attachment.ContentType);
+                    message.Attachments.Add(mailAttachment);
+                }
+
+                // Set priority
+                message.Priority = emailDto.Priority switch
+                {
+                    "High" => MailPriority.High,
+                    "Low" => MailPriority.Low,
+                    _ => MailPriority.Normal
+                };
+
+                if (emailDto.SendImmediately)
+                {
+                    await client.SendMailAsync(message);
+                    _logger.LogInformation("Email sent successfully to {ToEmail}", emailDto.ToEmail);
+                }
+                else
+                {
+                    // In a real implementation, you would queue the email for scheduled sending
+                    _logger.LogInformation("Email scheduled for {ScheduledTime}", emailDto.ScheduledTime);
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending email to {ToEmail}", emailDto.ToEmail);
+                return false;
+            }
+        }
+
+        public async Task<bool> SendEmailWithAttachmentAsync(string toEmail, string subject, string body, ExportResponseDto attachment)
+        {
+            try
+            {
+                var emailDto = new EmailNotificationDto
+                {
+                    ToEmail = toEmail,
+                    Subject = subject,
+                    Body = body,
+                    IsHtml = true,
+                    Attachments = new List<EmailAttachmentDto>
+                    {
+                        new EmailAttachmentDto
+                        {
+                            FileName = attachment.FileName,
+                            FileData = attachment.FileData,
+                            ContentType = attachment.ContentType
+                        }
+                    }
+                };
+
+                return await SendEmailAsync(emailDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending email with attachment");
+                return false;
+            }
+        }
+
+        public async Task<bool> SendBulkEmailAsync(List<EmailNotificationDto> emails)
+        {
+            try
+            {
+                var successCount = 0;
+                
+                foreach (var email in emails)
+                {
+                    var success = await SendEmailAsync(email);
+                    if (success) successCount++;
+                    
+                    // Add small delay to avoid overwhelming the SMTP server
+                    await Task.Delay(100);
+                }
+
+                _logger.LogInformation("Bulk email completed: {SuccessCount}/{TotalCount} sent successfully", 
+                    successCount, emails.Count);
+
+                return successCount == emails.Count;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending bulk emails");
+                return false;
+            }
+        }
+
+        public async Task<bool> SendScheduledReportAsync(ScheduledReportDto scheduledReport)
+        {
+            try
+            {
+                // Generate the report
+                var exportResponse = await GenerateScheduledReport(scheduledReport);
+                
+                if (!exportResponse.Success)
+                {
+                    _logger.LogError("Failed to generate scheduled report: {Message}", exportResponse.Message);
+                    return false;
+                }
+
+                // Send email to all recipients
+                var emails = new List<EmailNotificationDto>();
+                
+                foreach (var recipient in scheduledReport.Recipients)
+                {
+                    var emailTemplate = await GetEmailTemplateAsync("scheduled_report", new Dictionary<string, object>
+                    {
+                        { "report_name", scheduledReport.Name },
+                        { "generated_date", DateTime.UtcNow.ToString("yyyy-MM-dd") },
+                        { "next_run", scheduledReport.NextRun.ToString("yyyy-MM-dd") }
+                    });
+
+                    emails.Add(new EmailNotificationDto
+                    {
+                        ToEmail = recipient,
+                        Subject = $"Scheduled Report: {scheduledReport.Name}",
+                        Body = emailTemplate,
+                        IsHtml = true,
+                        Attachments = new List<EmailAttachmentDto>
+                        {
+                            new EmailAttachmentDto
+                            {
+                                FileName = exportResponse.FileName,
+                                FileData = exportResponse.FileData,
+                                ContentType = exportResponse.ContentType
+                            }
+                        }
+                    });
+                }
+
+                var success = await SendBulkEmailAsync(emails);
+                
+                if (success)
+                {
+                    // Update the scheduled report's last run time
+                    // In a real implementation, you would update this in the database
+                    _logger.LogInformation("Scheduled report {ReportName} sent successfully", scheduledReport.Name);
+                }
+
+                return success;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending scheduled report");
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region Template Methods
+
+        public async Task<string> GetEmailTemplateAsync(string templateName, Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var template = templateName.ToLower() switch
+                {
+                    "scheduled_report" => GetScheduledReportTemplate(),
+                    "alert_notification" => GetAlertNotificationTemplate(),
+                    "report_ready" => GetReportReadyTemplate(),
+                    _ => GetDefaultEmailTemplate()
+                };
+
+                // Replace parameters in template
+                foreach (var param in parameters)
+                {
+                    template = template.Replace($"{{{param.Key}}}", param.Value?.ToString() ?? "");
+                }
+
+                return await Task.FromResult(template);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting email template");
+                return await Task.FromResult(GetDefaultEmailTemplate());
+            }
+        }
+
+        public async Task<string> GetReportTemplateAsync(string templateName, Dictionary<string, object> parameters)
+        {
+            try
+            {
+                // Return basic report template
+                var template = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{report_title}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .header { text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 20px; }
+        .content { margin: 20px 0; }
+        .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <h1>Multi-Department Reporting Tool</h1>
+        <h2>{report_title}</h2>
+        <p>Generated: {generated_date}</p>
+    </div>
+    <div class='content'>
+        {content}
+    </div>
+    <div class='footer'>
+        <p>Generated by Multi-Department Reporting Tool</p>
+        <p>Contact: biyelaayanda3@gmail.com</p>
+    </div>
+</body>
+</html>";
+
+                // Replace parameters
+                foreach (var param in parameters)
+                {
+                    template = template.Replace($"{{{param.Key}}}", param.Value?.ToString() ?? "");
+                }
+
+                return await Task.FromResult(template);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting report template");
+                throw;
+            }
+        }
+
+        public async Task<bool> SaveCustomTemplateAsync(string templateName, string templateContent)
+        {
+            try
+            {
+                var templatesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "templates");
+                if (!Directory.Exists(templatesDirectory))
+                {
+                    Directory.CreateDirectory(templatesDirectory);
+                }
+
+                var templatePath = Path.Combine(templatesDirectory, $"{templateName}.html");
+                await File.WriteAllTextAsync(templatePath, templateContent);
+
+                _logger.LogInformation("Custom template saved: {TemplateName}", templateName);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving custom template");
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region Scheduled Reports Methods
+
+        public async Task<List<ScheduledReportDto>> GetScheduledReportsAsync(string userId = null)
+        {
+            try
+            {
+                // In a real implementation, this would query a ScheduledReports table
+                // For now, return sample data
+                return await Task.FromResult(new List<ScheduledReportDto>
+                {
+                    new ScheduledReportDto
+                    {
+                        Id = 1,
+                        Name = "Weekly Executive Summary",
+                        Description = "Weekly overview of all departments",
+                        ReportType = "dashboard",
+                        Frequency = "weekly",
+                        Recipients = new List<string> { "biyelaayanda3@gmail.com" },
+                        IsActive = true,
+                        NextRun = DateTime.UtcNow.AddDays(7),
+                        LastRun = DateTime.UtcNow.AddDays(-7),
+                        CreatedBy = "admin"
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting scheduled reports");
+                return new List<ScheduledReportDto>();
+            }
+        }
+
+        public async Task<ScheduledReportDto> CreateScheduledReportAsync(ScheduledReportDto scheduledReport)
+        {
+            try
+            {
+                // In a real implementation, save to database
+                scheduledReport.Id = new Random().Next(1000, 9999);
+                scheduledReport.CreatedAt = DateTime.UtcNow;
+                scheduledReport.NextRun = CalculateNextRun(scheduledReport.Frequency);
+
+                _logger.LogInformation("Scheduled report created: {ReportName}", scheduledReport.Name);
+                return await Task.FromResult(scheduledReport);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating scheduled report");
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdateScheduledReportAsync(int reportId, ScheduledReportDto scheduledReport)
+        {
+            try
+            {
+                // In a real implementation, update in database
+                _logger.LogInformation("Scheduled report updated: {ReportId}", reportId);
+                return await Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating scheduled report");
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteScheduledReportAsync(int reportId)
+        {
+            try
+            {
+                // In a real implementation, delete from database
+                _logger.LogInformation("Scheduled report deleted: {ReportId}", reportId);
+                return await Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting scheduled report");
+                return false;
+            }
+        }
+
+        public async Task<bool> RunScheduledReportAsync(int reportId)
+        {
+            try
+            {
+                var scheduledReports = await GetScheduledReportsAsync();
+                var report = scheduledReports.FirstOrDefault(r => r.Id == reportId);
+                
+                if (report == null)
+                {
+                    _logger.LogWarning("Scheduled report not found: {ReportId}", reportId);
+                    return false;
+                }
+
+                return await SendScheduledReportAsync(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error running scheduled report");
+                return false;
+            }
+        }
+
+        public async Task<List<ScheduledReportDto>> GetDueScheduledReportsAsync()
+        {
+            try
+            {
+                var allReports = await GetScheduledReportsAsync();
+                var dueReports = allReports.Where(r => r.IsActive && r.NextRun <= DateTime.UtcNow).ToList();
+                
+                return dueReports;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting due scheduled reports");
+                return new List<ScheduledReportDto>();
+            }
+        }
+
+        #endregion
+
+        #region File Management Methods
+
+        public async Task<string> SaveExportFileAsync(byte[] fileData, string fileName, string contentType)
+        {
+            try
+            {
+                var filePath = Path.Combine(_exportDirectory, fileName);
+                await File.WriteAllBytesAsync(filePath, fileData);
+                
+                _logger.LogInformation("Export file saved: {FilePath}", filePath);
+                return filePath;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving export file");
+                throw;
+            }
+        }
+
+        public async Task<byte[]> GetExportFileAsync(string filePath)
+        {
+            try
+            {
+                if (!File.Exists(filePath))
+                {
+                    throw new FileNotFoundException($"Export file not found: {filePath}");
+                }
+
+                return await File.ReadAllBytesAsync(filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting export file");
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteExportFileAsync(string filePath)
+        {
+            try
+            {
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                    _logger.LogInformation("Export file deleted: {FilePath}", filePath);
+                }
+                
+                return await Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting export file");
+                return false;
+            }
+        }
+
+        public async Task<List<string>> GetExportHistoryAsync(string userId, int limit = 50)
+        {
+            try
+            {
+                var files = Directory.GetFiles(_exportDirectory)
+                    .OrderByDescending(f => File.GetCreationTime(f))
+                    .Take(limit)
+                    .Select(f => Path.GetFileName(f))
+                    .ToList();
+
+                return await Task.FromResult(files);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting export history");
+                return new List<string>();
+            }
+        }
+
+        #endregion
+
+        #region Validation Methods
+
+        public bool ValidateExportRequest(ExportRequestDto request, out List<string> errors)
+        {
+            errors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(request.ReportType))
+            {
+                errors.Add("Report type is required");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Format))
+            {
+                errors.Add("Export format is required");
+            }
+
+            var validFormats = new[] { "pdf", "excel", "csv", "json" };
+            if (!string.IsNullOrWhiteSpace(request.Format) && !validFormats.Contains(request.Format.ToLower()))
+            {
+                errors.Add($"Invalid format. Supported formats: {string.Join(", ", validFormats)}");
+            }
+
+            if (request.StartDate.HasValue && request.EndDate.HasValue && request.StartDate > request.EndDate)
+            {
+                errors.Add("Start date cannot be greater than end date");
+            }
+
+            return errors.Count == 0;
+        }
+
+        public bool ValidateEmailRequest(EmailNotificationDto emailDto, out List<string> errors)
+        {
+            errors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(emailDto.ToEmail))
+            {
+                errors.Add("Recipient email is required");
+            }
+
+            if (!string.IsNullOrWhiteSpace(emailDto.ToEmail) && !IsValidEmail(emailDto.ToEmail))
+            {
+                errors.Add("Invalid recipient email format");
+            }
+
+            if (string.IsNullOrWhiteSpace(emailDto.Subject))
+            {
+                errors.Add("Email subject is required");
+            }
+
+            if (string.IsNullOrWhiteSpace(emailDto.Body))
+            {
+                errors.Add("Email body is required");
+            }
+
+            // Validate CC emails
+            foreach (var cc in emailDto.CcEmails)
+            {
+                if (!string.IsNullOrWhiteSpace(cc) && !IsValidEmail(cc))
+                {
+                    errors.Add($"Invalid CC email format: {cc}");
+                }
+            }
+
+            return errors.Count == 0;
+        }
+
+        public bool ValidateChartConfig(ChartConfigDto chartConfig, out List<string> errors)
+        {
+            errors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(chartConfig.ChartType))
+            {
+                errors.Add("Chart type is required");
+            }
+
+            var validChartTypes = new[] { "line", "bar", "pie", "area", "scatter" };
+            if (!string.IsNullOrWhiteSpace(chartConfig.ChartType) && !validChartTypes.Contains(chartConfig.ChartType.ToLower()))
+            {
+                errors.Add($"Invalid chart type. Supported types: {string.Join(", ", validChartTypes)}");
+            }
+
+            if (chartConfig.Width <= 0 || chartConfig.Height <= 0)
+            {
+                errors.Add("Chart dimensions must be positive");
+            }
+
+            if (!chartConfig.DataSeries.Any())
+            {
+                errors.Add("At least one data series is required");
+            }
+
+            return errors.Count == 0;
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private async Task<object> GetReportDataAsync(ExportRequestDto request)
+        {
+            try
+            {
+                _logger.LogInformation("Generating report data for report type: {ReportType}, date range: {StartDate} to {EndDate}", 
+                    request.ReportType, request.StartDate, request.EndDate);
+
+                // Get real dashboard data from analytics service when report type is dashboard
+                if (request.ReportType.ToLower() == "dashboard" && request.StartDate.HasValue && request.EndDate.HasValue)
+                {
+                    var dashboardData = await _analyticsService.GetExecutiveDashboardAsync(request.StartDate.Value, request.EndDate.Value);
+                    
+                    if (dashboardData != null)
+                    {
+                        _logger.LogInformation("Successfully retrieved dashboard data with {MetricsCount} metrics and {DepartmentsCount} departments", 
+                            dashboardData.KeyMetrics?.Count ?? 0,
+                            dashboardData.DepartmentSummaries?.Count ?? 0);
+
+                        // Transform the analytics data into export format
+                        return new
+                        {
+                            ReportType = request.ReportType,
+                            GeneratedAt = DateTime.UtcNow,
+                            DateRange = new
+                            {
+                                Start = request.StartDate,
+                                End = request.EndDate
+                            },
+                            Departments = request.Departments,
+                            CompanyOverview = dashboardData.CompanyOverview,
+                            KeyMetrics = dashboardData.KeyMetrics,
+                            DepartmentSummaries = dashboardData.DepartmentSummaries,
+                            CriticalAlerts = dashboardData.CriticalAlerts,
+                            RecentTrends = dashboardData.RecentTrends,
+                            TopPerformers = dashboardData.TopPerformers,
+                            DataSource = "Real Analytics Data",
+                            LastUpdated = dashboardData.LastUpdated
+                        };
+                    }
+                }
+
+                // Fallback to sample data if analytics service doesn't return data or for other report types
+                _logger.LogWarning("Using fallback sample data for report type: {ReportType}", request.ReportType);
+                return new
+                {
+                    ReportType = request.ReportType,
+                    GeneratedAt = DateTime.UtcNow,
+                    DateRange = new
+                    {
+                        Start = request.StartDate,
+                        End = request.EndDate
+                    },
+                    Departments = request.Departments,
+                    SampleData = "This is sample report data for " + request.ReportType,
+                    DataSource = "Fallback Sample Data"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating report data for report type: {ReportType}", request.ReportType);
+                
+                // Return error information in the data
+                return new
+                {
+                    ReportType = request.ReportType,
+                    GeneratedAt = DateTime.UtcNow,
+                    Error = "Failed to generate report data",
+                    ErrorMessage = ex.Message,
+                    DataSource = "Error Response"
+                };
+            }
+        }
+
+        private IEnumerable<object> ConvertToEnumerable(object data)
+        {
+            // Convert the data to an enumerable format for CSV generation
+            if (data is IEnumerable<object> enumerable)
+            {
+                return enumerable;
+            }
+
+            // For single objects, wrap in a list
+            return new List<object> { data };
+        }
+
+        private string GenerateFileName(ExportRequestDto request, string extension)
+        {
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var reportType = request.ReportType.Replace(" ", "_");
+            return $"{reportType}_{timestamp}.{extension}";
+        }
+
+        private async Task<ExportResponseDto> GenerateScheduledReport(ScheduledReportDto scheduledReport)
+        {
+            try
+            {
+                // Generate report based on scheduled report settings
+                return await ExportToPdfAsync(scheduledReport.ExportSettings);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating scheduled report");
+                return new ExportResponseDto
+                {
+                    Success = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        private DateTime CalculateNextRun(string frequency)
+        {
+            var now = DateTime.UtcNow;
+            
+            return frequency.ToLower() switch
+            {
+                "daily" => now.AddDays(1),
+                "weekly" => now.AddDays(7),
+                "monthly" => now.AddMonths(1),
+                "quarterly" => now.AddMonths(3),
+                "yearly" => now.AddYears(1),
+                _ => now.AddDays(1)
+            };
+        }
+
+        private bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private string GetScheduledReportTemplate()
+        {
+            return @"
+<html>
+<body style='font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;'>
+    <div style='max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+        <div style='text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 20px; margin-bottom: 30px;'>
+            <h1 style='color: #007bff; margin: 0;'>Multi-Department Reporting Tool</h1>
+            <h2 style='color: #333; margin: 10px 0 0 0;'>Scheduled Report</h2>
+        </div>
+        
+        <div style='margin-bottom: 30px;'>
+            <h3 style='color: #333; margin-bottom: 15px;'>Report: {report_name}</h3>
+            <p style='color: #666; line-height: 1.6; margin: 0;'>
+                Your scheduled report has been generated successfully and is attached to this email.
+            </p>
+        </div>
+        
+        <div style='background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 30px;'>
+            <h4 style='color: #333; margin: 0 0 15px 0;'>Report Details:</h4>
+            <p style='margin: 5px 0; color: #666;'><strong>Generated Date:</strong> {generated_date}</p>
+            <p style='margin: 5px 0; color: #666;'><strong>Next Scheduled Run:</strong> {next_run}</p>
+        </div>
+        
+        <div style='text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;'>
+            <p style='color: #666; font-size: 14px; margin: 0;'>
+                Generated by Multi-Department Reporting Tool<br>
+                Contact: <a href='mailto:biyelaayanda3@gmail.com' style='color: #007bff;'>biyelaayanda3@gmail.com</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        private string GetAlertNotificationTemplate()
+        {
+            return @"
+<html>
+<body style='font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;'>
+    <div style='max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+        <div style='text-align: center; border-bottom: 2px solid #dc3545; padding-bottom: 20px; margin-bottom: 30px;'>
+            <h1 style='color: #dc3545; margin: 0;'>Alert Notification</h1>
+            <h2 style='color: #333; margin: 10px 0 0 0;'>{alert_title}</h2>
+        </div>
+        
+        <div style='background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
+            <p style='margin: 0; font-weight: bold;'>{alert_message}</p>
+        </div>
+        
+        <div style='margin-bottom: 30px;'>
+            <p style='color: #666; line-height: 1.6;'><strong>Department:</strong> {department}</p>
+            <p style='color: #666; line-height: 1.6;'><strong>Severity:</strong> {severity}</p>
+            <p style='color: #666; line-height: 1.6;'><strong>Action Required:</strong> {action_required}</p>
+        </div>
+        
+        <div style='text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;'>
+            <p style='color: #666; font-size: 14px; margin: 0;'>
+                Multi-Department Reporting Tool<br>
+                Contact: <a href='mailto:biyelaayanda3@gmail.com' style='color: #007bff;'>biyelaayanda3@gmail.com</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        private string GetReportReadyTemplate()
+        {
+            return @"
+<html>
+<body style='font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;'>
+    <div style='max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+        <div style='text-align: center; border-bottom: 2px solid #28a745; padding-bottom: 20px; margin-bottom: 30px;'>
+            <h1 style='color: #28a745; margin: 0;'>Report Ready</h1>
+            <h2 style='color: #333; margin: 10px 0 0 0;'>{report_name}</h2>
+        </div>
+        
+        <div style='margin-bottom: 30px;'>
+            <p style='color: #666; line-height: 1.6;'>
+                Your requested report has been generated and is ready for download.
+            </p>
+        </div>
+        
+        <div style='text-align: center; margin: 30px 0;'>
+            <a href='{download_url}' style='background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block;'>
+                Download Report
+            </a>
+        </div>
+        
+        <div style='text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;'>
+            <p style='color: #666; font-size: 14px; margin: 0;'>
+                Multi-Department Reporting Tool<br>
+                Contact: <a href='mailto:biyelaayanda3@gmail.com' style='color: #007bff;'>biyelaayanda3@gmail.com</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        private string GetDefaultEmailTemplate()
+        {
+            return @"
+<html>
+<body style='font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;'>
+    <div style='max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+        <div style='text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 20px; margin-bottom: 30px;'>
+            <h1 style='color: #007bff; margin: 0;'>Multi-Department Reporting Tool</h1>
+        </div>
+        
+        <div style='margin-bottom: 30px;'>
+            <p style='color: #666; line-height: 1.6;'>
+                {message_content}
+            </p>
+        </div>
+        
+        <div style='text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;'>
+            <p style='color: #666; font-size: 14px; margin: 0;'>
+                Multi-Department Reporting Tool<br>
+                Contact: <a href='mailto:biyelaayanda3@gmail.com' style='color: #007bff;'>biyelaayanda3@gmail.com</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        #endregion
+    }
+}

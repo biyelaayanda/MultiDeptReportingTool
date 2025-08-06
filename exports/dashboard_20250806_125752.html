@@ -1,0 +1,968 @@
+
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Multi-Department Reporting Tool - Dashboard Report</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #007bff;
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .header h2 {
+            color: #6c757d;
+            margin: 10px 0;
+            font-weight: normal;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .section h3 {
+            color: #007bff;
+            margin-top: 0;
+            font-size: 1.4em;
+        }
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .data-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .data-card h4 {
+            color: #495057;
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .metric-label {
+            font-weight: 500;
+            color: #6c757d;
+        }
+        .metric-value {
+            font-weight: bold;
+            color: #212529;
+        }
+        .json-section {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .json-content {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #495057;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #dee2e6;
+            color: #6c757d;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .badge.warning { background-color: #ffc107; color: #212529; }
+        .badge.danger { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>Multi-Department Reporting Tool</h1>
+            <h2>Executive Dashboard Report</h2>
+            <p>Generated: 2025-08-06 12:57:52</p>
+            <span class='badge'>Real Analytics Data</span>
+        </div>
+
+        <div class='section'>
+            <h3>📊 Report Summary</h3>
+            <div class='data-grid'>
+                <div class='data-card'>
+                    <h4>Report Information</h4>
+                    <div class='metric'>
+                        <span class='metric-label'>Report Type:</span>
+                        <span class='metric-value'>Executive Dashboard</span>
+                    </div>
+                    <div class='metric'>
+                        <span class='metric-label'>Generated:</span>
+                        <span class='metric-value'>2025-08-06 12:57:52</span>
+                    </div>
+                    <div class='metric'>
+                        <span class='metric-label'>Data Source:</span>
+                        <span class='metric-value'>Real Analytics Data</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class='section'>
+            <h3>📋 Complete Report Data</h3>
+            <p>Below is the comprehensive data export from your dashboard analytics:</p>
+            <div class='json-section'>
+                <div class='json-content'>{
+  "ReportType": "dashboard",
+  "GeneratedAt": "2025-08-06T12:57:52.6319487Z",
+  "DateRange": {
+    "Start": "2025-07-07T12:57:52.455Z",
+    "End": "2025-08-06T12:57:52.455Z"
+  },
+  "Departments": [],
+  "CompanyOverview": {
+    "TotalReports": 12,
+    "TotalDepartments": 5,
+    "ActiveUsers": 9,
+    "OverallEfficiency": 41.666666666666666666666666670,
+    "TotalBudget": 1000000,
+    "BudgetUtilization": 75.5,
+    "PendingApprovals": 4,
+    "CriticalIssues": 0,
+    "PerformanceStatus": "Critical"
+  },
+  "KeyMetrics": [
+    {
+      "Name": "Total Revenue",
+      "CurrentValue": 60655.6933023919,
+      "TargetValue": 66721.26263263109,
+      "PreviousValue": 77636.58125457002,
+      "Unit": "$",
+      "Trend": "Declining",
+      "ChangePercentage": -21.872276802732800107242937730,
+      "Category": "Financial",
+      "Priority": "High"
+    },
+    {
+      "Name": "Report Completion Rate",
+      "CurrentValue": 59.398496240601503759398496240,
+      "TargetValue": 95,
+      "PreviousValue": 50.898496240601503759398496240,
+      "Unit": "%",
+      "Trend": "Improving",
+      "ChangePercentage": 16.699903981091661127114262500,
+      "Category": "Operational",
+      "Priority": "High"
+    },
+    {
+      "Name": "Employee Engagement Rate",
+      "CurrentValue": 100,
+      "TargetValue": 85,
+      "PreviousValue": 87.6,
+      "Unit": "%",
+      "Trend": "Improving",
+      "ChangePercentage": 14.155251141552511415525114160,
+      "Category": "HR",
+      "Priority": "Medium"
+    }
+  ],
+  "DepartmentSummaries": [
+    {
+      "DepartmentName": "Finance",
+      "TotalReports": 3,
+      "CompletedReports": 1,
+      "PendingReports": 2,
+      "EfficiencyScore": 85.13,
+      "BudgetUtilization": 81.0,
+      "Status": "Active",
+      "TopMetrics": [
+        {
+          "Name": "Efficiency Score",
+          "CurrentValue": 85.13,
+          "TargetValue": 90,
+          "PreviousValue": 0,
+          "Unit": "%",
+          "Trend": "Stable",
+          "ChangePercentage": 0,
+          "Category": "Finance",
+          "Priority": "High"
+        }
+      ],
+      "LastActivity": "2025-08-03T22:51:05.0398066"
+    },
+    {
+      "DepartmentName": "Human Resources",
+      "TotalReports": 3,
+      "CompletedReports": 3,
+      "PendingReports": 0,
+      "EfficiencyScore": 76.10,
+      "BudgetUtilization": 82.0,
+      "Status": "Warning",
+      "TopMetrics": [
+        {
+          "Name": "Efficiency Score",
+          "CurrentValue": 76.10,
+          "TargetValue": 90,
+          "PreviousValue": 0,
+          "Unit": "%",
+          "Trend": "Stable",
+          "ChangePercentage": 0,
+          "Category": "Human Resources",
+          "Priority": "High"
+        }
+      ],
+      "LastActivity": "2025-08-05T22:51:05.0398066"
+    },
+    {
+      "DepartmentName": "Operations",
+      "TotalReports": 3,
+      "CompletedReports": 0,
+      "PendingReports": 3,
+      "EfficiencyScore": 80.40,
+      "BudgetUtilization": 83.0,
+      "Status": "Warning",
+      "TopMetrics": [
+        {
+          "Name": "Efficiency Score",
+          "CurrentValue": 80.40,
+          "TargetValue": 90,
+          "PreviousValue": 0,
+          "Unit": "%",
+          "Trend": "Stable",
+          "ChangePercentage": 0,
+          "Category": "Operations",
+          "Priority": "High"
+        }
+      ],
+      "LastActivity": "2025-08-04T22:51:05.0398066"
+    },
+    {
+      "DepartmentName": "Compliance",
+      "TotalReports": 2,
+      "CompletedReports": 1,
+      "PendingReports": 1,
+      "EfficiencyScore": 76.70,
+      "BudgetUtilization": 84.0,
+      "Status": "Warning",
+      "TopMetrics": [
+        {
+          "Name": "Efficiency Score",
+          "CurrentValue": 76.70,
+          "TargetValue": 90,
+          "PreviousValue": 0,
+          "Unit": "%",
+          "Trend": "Stable",
+          "ChangePercentage": 0,
+          "Category": "Compliance",
+          "Priority": "High"
+        }
+      ],
+      "LastActivity": "2025-08-04T22:51:05.0398066"
+    },
+    {
+      "DepartmentName": "Information Technology",
+      "TotalReports": 1,
+      "CompletedReports": 0,
+      "PendingReports": 1,
+      "EfficiencyScore": 81.00,
+      "BudgetUtilization": 85.0,
+      "Status": "Warning",
+      "TopMetrics": [
+        {
+          "Name": "Efficiency Score",
+          "CurrentValue": 81.00,
+          "TargetValue": 90,
+          "PreviousValue": 0,
+          "Unit": "%",
+          "Trend": "Stable",
+          "ChangePercentage": 0,
+          "Category": "Information Technology",
+          "Priority": "High"
+        }
+      ],
+      "LastActivity": "2025-08-03T22:51:05.0398066"
+    }
+  ],
+  "CriticalAlerts": [],
+  "RecentTrends": [
+    {
+      "MetricName": "efficiency",
+      "DataPoints": [
+        {
+          "Date": "2025-07-07T12:57:52.455Z",
+          "Value": 64.2257005264959,
+          "Label": "Jul 07",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-08T12:57:52.455Z",
+          "Value": 4.88774479822345,
+          "Label": "Jul 08",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-09T12:57:52.455Z",
+          "Value": 30.9771268668889,
+          "Label": "Jul 09",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-10T12:57:52.455Z",
+          "Value": 18.5129428799939,
+          "Label": "Jul 10",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-11T12:57:52.455Z",
+          "Value": 24.6851493345079,
+          "Label": "Jul 11",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-12T12:57:52.455Z",
+          "Value": 81.2063190536606,
+          "Label": "Jul 12",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-13T12:57:52.455Z",
+          "Value": 98.7228492899215,
+          "Label": "Jul 13",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-14T12:57:52.455Z",
+          "Value": 7.364592899668,
+          "Label": "Jul 14",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-15T12:57:52.455Z",
+          "Value": 87.5898227509871,
+          "Label": "Jul 15",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-16T12:57:52.455Z",
+          "Value": 20.2784456992624,
+          "Label": "Jul 16",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-17T12:57:52.455Z",
+          "Value": 59.3452300242881,
+          "Label": "Jul 17",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-18T12:57:52.455Z",
+          "Value": 11.7078268464742,
+          "Label": "Jul 18",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-19T12:57:52.455Z",
+          "Value": 15.1697799645991,
+          "Label": "Jul 19",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-20T12:57:52.455Z",
+          "Value": 22.3909213280828,
+          "Label": "Jul 20",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-21T12:57:52.455Z",
+          "Value": 92.7353062316429,
+          "Label": "Jul 21",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-22T12:57:52.455Z",
+          "Value": 92.5553254585878,
+          "Label": "Jul 22",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-23T12:57:52.455Z",
+          "Value": 48.3592209454752,
+          "Label": "Jul 23",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-24T12:57:52.455Z",
+          "Value": 51.8694985754302,
+          "Label": "Jul 24",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-25T12:57:52.455Z",
+          "Value": 40.9337148508283,
+          "Label": "Jul 25",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-26T12:57:52.455Z",
+          "Value": 79.0087316008488,
+          "Label": "Jul 26",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-27T12:57:52.455Z",
+          "Value": 75.1983552854438,
+          "Label": "Jul 27",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-28T12:57:52.455Z",
+          "Value": 39.7404981630278,
+          "Label": "Jul 28",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-29T12:57:52.455Z",
+          "Value": 49.9576599260039,
+          "Label": "Jul 29",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-30T12:57:52.455Z",
+          "Value": 10.7169638392864,
+          "Label": "Jul 30",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-07-31T12:57:52.455Z",
+          "Value": 76.249018446508,
+          "Label": "Jul 31",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-08-01T12:57:52.455Z",
+          "Value": 86.347278203717,
+          "Label": "Aug 01",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-08-02T12:57:52.455Z",
+          "Value": 76.933349201555,
+          "Label": "Aug 02",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-08-03T12:57:52.455Z",
+          "Value": 30.4127696333842,
+          "Label": "Aug 03",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-08-04T12:57:52.455Z",
+          "Value": 53.053106627679,
+          "Label": "Aug 04",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-08-05T12:57:52.455Z",
+          "Value": 18.8930349203901,
+          "Label": "Aug 05",
+          "Category": "efficiency"
+        },
+        {
+          "Date": "2025-08-06T12:57:52.455Z",
+          "Value": 39.9992460321074,
+          "Label": "Aug 06",
+          "Category": "efficiency"
+        }
+      ],
+      "ChartType": "line",
+      "Color": "#28a745",
+      "PredictedValue": 40.405232514521903991935483871,
+      "PredictionConfidence": "High"
+    },
+    {
+      "MetricName": "budget_utilization",
+      "DataPoints": [
+        {
+          "Date": "2025-07-07T12:57:52.455Z",
+          "Value": 27.2369121573843,
+          "Label": "Jul 07",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-08T12:57:52.455Z",
+          "Value": 98.8588159880393,
+          "Label": "Jul 08",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-09T12:57:52.455Z",
+          "Value": 34.1926775948634,
+          "Label": "Jul 09",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-10T12:57:52.455Z",
+          "Value": 47.6999989297604,
+          "Label": "Jul 10",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-11T12:57:52.455Z",
+          "Value": 48.6503108194511,
+          "Label": "Jul 11",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-12T12:57:52.455Z",
+          "Value": 3.4992432583699,
+          "Label": "Jul 12",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-13T12:57:52.455Z",
+          "Value": 66.931535837266,
+          "Label": "Jul 13",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-14T12:57:52.455Z",
+          "Value": 12.0519282619056,
+          "Label": "Jul 14",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-15T12:57:52.455Z",
+          "Value": 38.411652019311,
+          "Label": "Jul 15",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-16T12:57:52.455Z",
+          "Value": 21.5606634468488,
+          "Label": "Jul 16",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-17T12:57:52.455Z",
+          "Value": 22.7035235398937,
+          "Label": "Jul 17",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-18T12:57:52.455Z",
+          "Value": 33.5203783953428,
+          "Label": "Jul 18",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-19T12:57:52.455Z",
+          "Value": 91.3875255989799,
+          "Label": "Jul 19",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-20T12:57:52.455Z",
+          "Value": 83.8420339247885,
+          "Label": "Jul 20",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-21T12:57:52.455Z",
+          "Value": 78.7523387535188,
+          "Label": "Jul 21",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-22T12:57:52.455Z",
+          "Value": 0.471957655141619,
+          "Label": "Jul 22",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-23T12:57:52.455Z",
+          "Value": 42.2250047489094,
+          "Label": "Jul 23",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-24T12:57:52.455Z",
+          "Value": 88.5381399699598,
+          "Label": "Jul 24",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-25T12:57:52.455Z",
+          "Value": 30.2522776661147,
+          "Label": "Jul 25",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-26T12:57:52.455Z",
+          "Value": 51.9455122575252,
+          "Label": "Jul 26",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-27T12:57:52.455Z",
+          "Value": 58.8927578365616,
+          "Label": "Jul 27",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-28T12:57:52.455Z",
+          "Value": 10.9109307201517,
+          "Label": "Jul 28",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-29T12:57:52.455Z",
+          "Value": 36.3758415562172,
+          "Label": "Jul 29",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-30T12:57:52.455Z",
+          "Value": 84.6958330782568,
+          "Label": "Jul 30",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-07-31T12:57:52.455Z",
+          "Value": 26.2163637783611,
+          "Label": "Jul 31",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-08-01T12:57:52.455Z",
+          "Value": 84.0616660183551,
+          "Label": "Aug 01",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-08-02T12:57:52.455Z",
+          "Value": 53.3875289097068,
+          "Label": "Aug 02",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-08-03T12:57:52.455Z",
+          "Value": 97.0926323713586,
+          "Label": "Aug 03",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-08-04T12:57:52.455Z",
+          "Value": 63.0869432163173,
+          "Label": "Aug 04",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-08-05T12:57:52.455Z",
+          "Value": 90.2276696737254,
+          "Label": "Aug 05",
+          "Category": "budget_utilization"
+        },
+        {
+          "Date": "2025-08-06T12:57:52.455Z",
+          "Value": 8.46458530983204,
+          "Label": "Aug 06",
+          "Category": "budget_utilization"
+        }
+      ],
+      "ChartType": "area",
+      "Color": "#007bff",
+      "PredictedValue": 9.111489016071998991935483871,
+      "PredictionConfidence": "High"
+    },
+    {
+      "MetricName": "completion_rate",
+      "DataPoints": [
+        {
+          "Date": "2025-07-07T12:57:52.455Z",
+          "Value": 8.77833960054074,
+          "Label": "Jul 07",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-08T12:57:52.455Z",
+          "Value": 12.9133572174047,
+          "Label": "Jul 08",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-09T12:57:52.455Z",
+          "Value": 91.6387512663648,
+          "Label": "Jul 09",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-10T12:57:52.455Z",
+          "Value": 54.4105763383064,
+          "Label": "Jul 10",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-11T12:57:52.455Z",
+          "Value": 48.4667281527075,
+          "Label": "Jul 11",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-12T12:57:52.455Z",
+          "Value": 60.6874189637321,
+          "Label": "Jul 12",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-13T12:57:52.455Z",
+          "Value": 81.554081488937,
+          "Label": "Jul 13",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-14T12:57:52.455Z",
+          "Value": 6.95522990742548,
+          "Label": "Jul 14",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-15T12:57:52.455Z",
+          "Value": 75.5189559964996,
+          "Label": "Jul 15",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-16T12:57:52.455Z",
+          "Value": 56.2833039545521,
+          "Label": "Jul 16",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-17T12:57:52.455Z",
+          "Value": 56.1419565749151,
+          "Label": "Jul 17",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-18T12:57:52.455Z",
+          "Value": 2.65822294625948,
+          "Label": "Jul 18",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-19T12:57:52.455Z",
+          "Value": 25.0116555054331,
+          "Label": "Jul 19",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-20T12:57:52.455Z",
+          "Value": 22.6313295132552,
+          "Label": "Jul 20",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-21T12:57:52.455Z",
+          "Value": 16.7079670458839,
+          "Label": "Jul 21",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-22T12:57:52.455Z",
+          "Value": 94.2938676485354,
+          "Label": "Jul 22",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-23T12:57:52.455Z",
+          "Value": 70.5647136332412,
+          "Label": "Jul 23",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-24T12:57:52.455Z",
+          "Value": 99.8670799291243,
+          "Label": "Jul 24",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-25T12:57:52.455Z",
+          "Value": 49.4809199965162,
+          "Label": "Jul 25",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-26T12:57:52.455Z",
+          "Value": 62.1583474576798,
+          "Label": "Jul 26",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-27T12:57:52.455Z",
+          "Value": 24.1479528709807,
+          "Label": "Jul 27",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-28T12:57:52.455Z",
+          "Value": 36.2912628043433,
+          "Label": "Jul 28",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-29T12:57:52.455Z",
+          "Value": 98.3288417324188,
+          "Label": "Jul 29",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-30T12:57:52.455Z",
+          "Value": 19.4987142044398,
+          "Label": "Jul 30",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-07-31T12:57:52.455Z",
+          "Value": 61.1683501571314,
+          "Label": "Jul 31",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-08-01T12:57:52.455Z",
+          "Value": 32.2012160709512,
+          "Label": "Aug 01",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-08-02T12:57:52.455Z",
+          "Value": 90.4618366894735,
+          "Label": "Aug 02",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-08-03T12:57:52.455Z",
+          "Value": 63.2744205606999,
+          "Label": "Aug 03",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-08-04T12:57:52.455Z",
+          "Value": 24.294820783188,
+          "Label": "Aug 04",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-08-05T12:57:52.455Z",
+          "Value": 48.4233468935625,
+          "Label": "Aug 05",
+          "Category": "completion_rate"
+        },
+        {
+          "Date": "2025-08-06T12:57:52.455Z",
+          "Value": 28.8707832544549,
+          "Label": "Aug 06",
+          "Category": "completion_rate"
+        }
+      ],
+      "ChartType": "bar",
+      "Color": "#ffc107",
+      "PredictedValue": 29.081616107558675016129032258,
+      "PredictionConfidence": "High"
+    }
+  ],
+  "TopPerformers": [
+    {
+      "UserId": 1,
+      "UserName": "Test User",
+      "DepartmentName": "Human Resources",
+      "CompletedReports": 2,
+      "AverageCompletionTime": 15.5,
+      "Efficiency": 66.666666666666666666666666667,
+      "Rank": 1,
+      "Trend": "Stable"
+    },
+    {
+      "UserId": 7,
+      "UserName": "John Staff",
+      "DepartmentName": "Finance",
+      "CompletedReports": 1,
+      "AverageCompletionTime": 21,
+      "Efficiency": 50,
+      "Rank": 2,
+      "Trend": "Down"
+    },
+    {
+      "UserId": 8,
+      "UserName": "Executive User",
+      "DepartmentName": "Human Resources",
+      "CompletedReports": 1,
+      "AverageCompletionTime": 12,
+      "Efficiency": 50,
+      "Rank": 3,
+      "Trend": "Down"
+    },
+    {
+      "UserId": 4,
+      "UserName": "IT TestUser",
+      "DepartmentName": "Compliance",
+      "CompletedReports": 1,
+      "AverageCompletionTime": 20,
+      "Efficiency": 50,
+      "Rank": 4,
+      "Trend": "Down"
+    }
+  ],
+  "DataSource": "Real Analytics Data",
+  "LastUpdated": "2025-08-06T12:57:52.6319394Z"
+}</div>
+            </div>
+        </div>
+
+        <div class='footer'>
+            <p><strong>Multi-Department Reporting Tool</strong></p>
+            <p>Contact: <a href='mailto:biyelaayanda3@gmail.com'>biyelaayanda3@gmail.com</a></p>
+            <p><em>This report contains real data from your analytics dashboard</em></p>
+        </div>
+    </div>
+</body>
+</html>

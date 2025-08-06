@@ -1,0 +1,9 @@
+{
+  "username": "executive",
+  "email": "executive@example.com",
+  "password": "Executive123!",
+  "firstName": "Executive",
+  "lastName": "User",
+  "role": "Executive",
+  "departmentId": 1
+}
