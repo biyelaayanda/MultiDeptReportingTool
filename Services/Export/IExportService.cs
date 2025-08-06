@@ -26,6 +26,10 @@ namespace MultiDeptReportingTool.Services.Export
         Task<ExportResponseDto> ExportToJsonAsync(ExportRequestDto request);
         Task<string> GenerateJsonReportAsync(object reportData);
 
+        // PowerPoint Export Methods
+        Task<ExportResponseDto> ExportToPowerPointAsync(ExportRequestDto request);
+        Task<byte[]> GeneratePowerPointReportAsync(object reportData, string templateName = "default");
+
         // Chart Generation Methods
         Task<byte[]> GenerateChartImageAsync(ChartConfigDto chartConfig);
         Task<List<byte[]>> GenerateMultipleChartsAsync(List<ChartConfigDto> chartConfigs);

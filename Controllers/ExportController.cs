@@ -122,6 +122,30 @@ namespace MultiDeptReportingTool.Controllers
         }
 
         /// <summary>
+        /// Export report to PowerPoint
+        /// </summary>
+        [HttpPost("powerpoint")]
+        public async Task<ActionResult> ExportToPowerPoint([FromBody] ExportRequestDto request)
+        {
+            try
+            {
+                var result = await _exportService.ExportToPowerPointAsync(request);
+                
+                if (!result.Success)
+                {
+                    return BadRequest(new { message = result.Message });
+                }
+
+                return File(result.FileData, result.ContentType, result.FileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting to PowerPoint");
+                return StatusCode(500, new { message = "Error exporting to PowerPoint", error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Generic export endpoint that handles multiple formats
         /// </summary>
         [HttpPost("generate")]
@@ -140,6 +164,7 @@ namespace MultiDeptReportingTool.Controllers
                     "excel" or "xlsx" => await _exportService.ExportToExcelAsync(request),
                     "csv" => await _exportService.ExportToCsvAsync(request),
                     "json" => await _exportService.ExportToJsonAsync(request),
+                    "powerpoint" or "ppt" or "pptx" => await _exportService.ExportToPowerPointAsync(request),
                     _ => new ExportResponseDto 
                     { 
                         Success = false, 

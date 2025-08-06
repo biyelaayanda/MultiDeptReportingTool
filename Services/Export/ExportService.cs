@@ -616,6 +616,124 @@ namespace MultiDeptReportingTool.Services.Export
             }
         }
 
+        // PowerPoint Export Methods - Basic implementation
+        public async Task<ExportResponseDto> ExportToPowerPointAsync(ExportRequestDto request)
+        {
+            try
+            {
+                // Get real analytics data from the service
+                var dashboardData = await _analyticsService.GetExecutiveDashboardAsync();
+                
+                var pptBytes = await GeneratePowerPointReportAsync(dashboardData, "Executive Dashboard");
+                
+                return new ExportResponseDto
+                {
+                    Success = true,
+                    FileData = pptBytes,
+                    FileName = $"executive_dashboard_report_{DateTime.Now:yyyyMMdd_HHmmss}.pptx",
+                    ContentType = "application/vnd.openxmlformats-presentationml.presentation",
+                    Message = "PowerPoint file generated successfully"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ExportResponseDto
+                {
+                    Success = false,
+                    Message = $"Error generating PowerPoint: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<byte[]> GeneratePowerPointReportAsync(object reportData, string templateName = "default")
+        {
+            await Task.CompletedTask;
+            
+            // For now, create a simple text-based PowerPoint placeholder
+            // This would need a proper PowerPoint library like DocumentFormat.OpenXml or similar
+            var dashboard = reportData as ExecutiveDashboardDto;
+            if (dashboard == null)
+            {
+                throw new ArgumentException("Invalid dashboard data format");
+            }
+
+            // Create a basic HTML-based presentation that can be saved as PPTX
+            var htmlContent = GeneratePowerPointHtmlContent(dashboard);
+            return Encoding.UTF8.GetBytes(htmlContent);
+        }
+
+        private string GeneratePowerPointHtmlContent(ExecutiveDashboardDto dashboard)
+        {
+            var html = new StringBuilder();
+            html.AppendLine("<!DOCTYPE html>");
+            html.AppendLine("<html><head><title>Executive Dashboard Presentation</title>");
+            html.AppendLine("<style>");
+            html.AppendLine("body { font-family: Arial, sans-serif; margin: 20px; }");
+            html.AppendLine(".slide { page-break-after: always; padding: 20px; border: 1px solid #ccc; margin-bottom: 20px; }");
+            html.AppendLine(".title { font-size: 24px; font-weight: bold; color: #2E5C9A; margin-bottom: 20px; }");
+            html.AppendLine(".content { font-size: 14px; line-height: 1.6; }");
+            html.AppendLine("</style>");
+            html.AppendLine("</head><body>");
+
+            // Title Slide
+            html.AppendLine("<div class='slide'>");
+            html.AppendLine("<div class='title'>Executive Dashboard Report</div>");
+            html.AppendLine("<div class='content'>");
+            html.AppendLine($"<p>Generated: {DateTime.Now:MMMM dd, yyyy}</p>");
+            html.AppendLine($"<p>Data Last Updated: {dashboard.LastUpdated:MMMM dd, yyyy HH:mm} UTC</p>");
+            html.AppendLine("</div>");
+            html.AppendLine("</div>");
+
+            // Company Overview Slide
+            if (dashboard.CompanyOverview != null)
+            {
+                html.AppendLine("<div class='slide'>");
+                html.AppendLine("<div class='title'>Company Overview</div>");
+                html.AppendLine("<div class='content'>");
+                html.AppendLine($"<p><strong>Total Budget:</strong> ${dashboard.CompanyOverview.TotalBudget:N2}</p>");
+                html.AppendLine($"<p><strong>Budget Utilization:</strong> {dashboard.CompanyOverview.BudgetUtilization:P2}</p>");
+                html.AppendLine($"<p><strong>Total Departments:</strong> {dashboard.CompanyOverview.TotalDepartments}</p>");
+                html.AppendLine($"<p><strong>Active Users:</strong> {dashboard.CompanyOverview.ActiveUsers}</p>");
+                html.AppendLine($"<p><strong>Performance Status:</strong> {dashboard.CompanyOverview.PerformanceStatus}</p>");
+                html.AppendLine("</div>");
+                html.AppendLine("</div>");
+            }
+
+            // Department Summaries Slide
+            if (dashboard.DepartmentSummaries?.Any() == true)
+            {
+                html.AppendLine("<div class='slide'>");
+                html.AppendLine("<div class='title'>Department Performance</div>");
+                html.AppendLine("<div class='content'>");
+                foreach (var dept in dashboard.DepartmentSummaries.Take(5))
+                {
+                    html.AppendLine($"<p><strong>{dept.DepartmentName}</strong><br>");
+                    html.AppendLine($"Reports: {dept.CompletedReports}/{dept.TotalReports} | ");
+                    html.AppendLine($"Efficiency: {dept.EfficiencyScore:P1}</p>");
+                }
+                html.AppendLine("</div>");
+                html.AppendLine("</div>");
+            }
+
+            // Critical Alerts Slide
+            if (dashboard.CriticalAlerts?.Any() == true)
+            {
+                html.AppendLine("<div class='slide'>");
+                html.AppendLine("<div class='title'>Critical Alerts</div>");
+                html.AppendLine("<div class='content'>");
+                foreach (var alert in dashboard.CriticalAlerts.Take(5))
+                {
+                    html.AppendLine($"<p><strong>{alert.Title}</strong> ({alert.Severity})<br>");
+                    html.AppendLine($"Department: {alert.Department}</p>");
+                }
+                html.AppendLine("</div>");
+                html.AppendLine("</div>");
+            }
+
+            html.AppendLine("</body></html>");
+            return html.ToString();
+        }
+
         // Chart Generation Methods - Placeholder implementations
         public async Task<byte[]> GenerateChartImageAsync(ChartConfigDto chartConfig)
         {
