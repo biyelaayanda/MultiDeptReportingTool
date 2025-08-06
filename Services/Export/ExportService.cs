@@ -24,6 +24,9 @@ namespace MultiDeptReportingTool.Services.Export
         public ExportService(IAnalyticsService analyticsService)
         {
             _analyticsService = analyticsService;
+            
+            // Set EPPlus license context for non-commercial use
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         }
 
         // PDF Export Methods - The main functionality we need

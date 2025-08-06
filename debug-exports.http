@@ -1,0 +1,41 @@
+### Test CSV Export
+POST https://localhost:7248/api/export/csv
+Content-Type: application/json
+
+{
+  "format": "csv",
+  "reportType": "Executive Dashboard",
+  "includeCharts": true,
+  "dateRange": {
+    "startDate": "2025-07-01",
+    "endDate": "2025-08-06"
+  }
+}
+
+### Test JSON Export  
+POST https://localhost:7248/api/export/json
+Content-Type: application/json
+
+{
+  "format": "json",
+  "reportType": "Executive Dashboard",
+  "includeCharts": true,
+  "dateRange": {
+    "startDate": "2025-07-01",
+    "endDate": "2025-08-06"
+  }
+}
+
+### Test PDF Export with Error Debug
+POST https://localhost:7248/api/export/pdf
+Content-Type: application/json
+
+{
+  "format": "pdf",
+  "reportType": "Executive Dashboard",
+  "includeCharts": true,
+  "dateRange": {
+    "startDate": "2025-07-01",
+    "endDate": "2025-08-06"
+  }
+}

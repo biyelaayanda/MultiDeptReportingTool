@@ -161,7 +161,6 @@ namespace MultiDeptReportingTool.Controllers
                 ExportResponseDto result = request.Format.ToLower() switch
                 {
                     "pdf" => await _exportService.ExportToPdfAsync(request),
-                    "excel" or "xlsx" => await _exportService.ExportToExcelAsync(request),
                     "csv" => await _exportService.ExportToCsvAsync(request),
                     "json" => await _exportService.ExportToJsonAsync(request),
                     "powerpoint" or "ppt" or "pptx" => await _exportService.ExportToPowerPointAsync(request),

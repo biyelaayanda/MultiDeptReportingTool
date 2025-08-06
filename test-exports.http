@@ -1,0 +1,111 @@
+### Test PDF Export
+POST https://localhost:7248/api/export/pdf
+Content-Type: application/json
+
+{
+  "format": "pdf",
+  "reportType": "Executive Dashboard",
+  "includeCharts": true,
+  "dateRange": {
+    "startDate": "2025-07-01",
+    "endDate": "2025-08-06"
+  }
+}
+
+### Test PowerPoint Export
+POST https://localhost:7248/api/export/powerpoint
+Content-Type: application/json
+
+{
+  "format": "powerpoint",
+  "reportType": "Executive Dashboard",
+  "includeCharts": true,
+  "dateRange": {
+    "startDate": "2025-07-01",
+    "endDate": "2025-08-06"
+  }
+}
+
+### Test CSV Export
+POST https://localhost:7248/api/export/csv
+Content-Type: application/json
+
+{
+  "format": "csv",
+  "reportType": "Executive Dashboard",
+  "includeCharts": true,
+  "dateRange": {
+    "startDate": "2025-07-01",
+    "endDate": "2025-08-06"
+  }
+}
+
+### Test JSON Export
+POST https://localhost:7248/api/export/json
+Content-Type: application/json
+
+{
+  "format": "json",
+  "reportType": "Executive Dashboard",
+  "includeCharts": true,
+  "dateRange": {
+    "startDate": "2025-07-01",
+    "endDate": "2025-08-06"
+  }
+}
+
+### Test Generic Export with PDF
+POST https://localhost:7248/api/export/generate
+Content-Type: application/json
+
+{
+  "format": "pdf",
+  "reportType": "Executive Dashboard",
+  "includeCharts": true,
+  "dateRange": {
+    "startDate": "2025-07-01",
+    "endDate": "2025-08-06"
+  }
+}
+
+### Test Generic Export with PowerPoint
+POST https://localhost:7248/api/export/generate
+Content-Type: application/json
+
+{
+  "format": "powerpoint",
+  "reportType": "Executive Dashboard",
+  "includeCharts": true,
+  "dateRange": {
+    "startDate": "2025-07-01",
+    "endDate": "2025-08-06"
+  }
+}
+
+### Test Generic Export with CSV
+POST https://localhost:7248/api/export/generate
+Content-Type: application/json
+
+{
+  "format": "csv",
+  "reportType": "Executive Dashboard",
+  "includeCharts": true,
+  "dateRange": {
+    "startDate": "2025-07-01",
+    "endDate": "2025-08-06"
+  }
+}
+
+### Test Generic Export with JSON
+POST https://localhost:7248/api/export/generate
+Content-Type: application/json
+
+{
+  "format": "json",
+  "reportType": "Executive Dashboard",
+  "includeCharts": true,
+  "dateRange": {
+    "startDate": "2025-07-01",
+    "endDate": "2025-08-06"
+  }
+}
