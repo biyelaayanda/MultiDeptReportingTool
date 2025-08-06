@@ -1,0 +1,6 @@
+### Seed Comprehensive Database Data
+POST http://localhost:5001/api/DatabaseSeed/seed-comprehensive-data
+Content-Type: application/json
+
+### Check Seeding Status
+GET http://localhost:5001/api/DatabaseSeed/seeding-status

@@ -66,6 +66,7 @@ builder.Services.AddScoped<IDepartmentReportService, DepartmentReportService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<DepartmentSpecificSeedingService>();
+builder.Services.AddScoped<ComprehensiveDataSeedingService>();
 
 var app = builder.Build();
 
