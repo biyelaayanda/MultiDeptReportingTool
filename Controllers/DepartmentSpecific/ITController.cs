@@ -117,7 +117,7 @@ namespace MultiDeptReportingTool.Controllers.DepartmentSpecific
                 if (string.IsNullOrEmpty(username))
                     return Unauthorized("User not authenticated");
 
-                var result = await _departmentReportService.GetDepartmentAnalyticsAsync("IT", username, fromDate, toDate);
+                var result = await _departmentReportService.GetDepartmentAnalyticsAsync("Information Technology", username, fromDate, toDate);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -135,7 +135,7 @@ namespace MultiDeptReportingTool.Controllers.DepartmentSpecific
                 if (string.IsNullOrEmpty(username))
                     return Unauthorized("User not authenticated");
 
-                var result = await _departmentReportService.GetDepartmentDashboardAsync("IT", username);
+                var result = await _departmentReportService.GetDepartmentDashboardAsync("Information Technology", username);
                 return Ok(result);
             }
             catch (Exception ex)

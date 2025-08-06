@@ -65,6 +65,7 @@ builder.Services.AddScoped<IDepartmentReportService, DepartmentReportService>();
 // Register Phase 4 Analytics and Export Services
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IExportService, ExportService>();
+builder.Services.AddScoped<DepartmentSpecificSeedingService>();
 
 var app = builder.Build();
 

@@ -117,7 +117,7 @@ namespace MultiDeptReportingTool.Controllers.DepartmentSpecific
                 if (string.IsNullOrEmpty(username))
                     return Unauthorized("User not authenticated");
 
-                var result = await _departmentReportService.GetDepartmentAnalyticsAsync("HR", username, fromDate, toDate);
+                var result = await _departmentReportService.GetDepartmentAnalyticsAsync("Human Resources", username, fromDate, toDate);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -135,7 +135,7 @@ namespace MultiDeptReportingTool.Controllers.DepartmentSpecific
                 if (string.IsNullOrEmpty(username))
                     return Unauthorized("User not authenticated");
 
-                var result = await _departmentReportService.GetDepartmentDashboardAsync("HR", username);
+                var result = await _departmentReportService.GetDepartmentDashboardAsync("Human Resources", username);
                 return Ok(result);
             }
             catch (Exception ex)

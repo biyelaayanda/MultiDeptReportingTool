@@ -19,6 +19,67 @@ namespace MultiDeptReportingTool.Controllers
             _logger = logger;
         }
 
+        [HttpPost("seed-department-data")]
+        public async Task<IActionResult> SeedDepartmentSpecificData()
+        {
+            try
+            {
+                _logger.LogInformation("Starting department-specific data seeding via API...");
+                var seedingLogger = new LoggerFactory().CreateLogger<DepartmentSpecificSeedingService>();
+                var seedingService = new DepartmentSpecificSeedingService(_context, seedingLogger);
+                await seedingService.SeedDepartmentSpecificDataAsync();
+                
+                // Get summary of seeded data by department
+                var departments = await _context.Departments.ToListAsync();
+                var departmentSummaries = new List<object>();
+                
+                foreach (var dept in departments)
+                {
+                    var deptReports = await _context.Reports.Where(r => r.DepartmentId == dept.Id).ToListAsync();
+                    var completed = deptReports.Count(r => r.Status == "Approved");
+                    var pending = deptReports.Count(r => r.Status == "Pending");
+                    var overdue = deptReports.Count(r => r.Status == "Overdue");
+                    var draft = deptReports.Count(r => r.Status == "Draft");
+                    
+                    departmentSummaries.Add(new
+                    {
+                        department = dept.Name,
+                        totalReports = deptReports.Count,
+                        completed,
+                        pending,
+                        overdue,
+                        draft,
+                        completionRate = deptReports.Count > 0 ? Math.Round((double)completed / deptReports.Count * 100, 1) : 0
+                    });
+                }
+
+                var summary = new
+                {
+                    message = "Department-specific data seeded successfully",
+                    departments = departmentSummaries,
+                    totals = new
+                    {
+                        totalReports = await _context.Reports.CountAsync(),
+                        totalReportData = await _context.ReportData.CountAsync(),
+                        totalAuditLogs = await _context.AuditLogs.CountAsync(),
+                        totalDepartments = await _context.Departments.CountAsync(),
+                        totalUsers = await _context.Users.CountAsync()
+                    },
+                    timestamp = DateTime.UtcNow
+                };
+
+                return Ok(summary);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to seed department-specific data");
+                return StatusCode(500, new { 
+                    message = "Failed to seed department-specific data", 
+                    error = ex.Message 
+                });
+            }
+        }
+
         [HttpPost("seed-analytics-data")]
         public async Task<IActionResult> SeedAnalyticsData()
         {
