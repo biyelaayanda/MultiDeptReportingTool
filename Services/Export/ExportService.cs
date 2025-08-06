@@ -74,6 +74,7 @@ namespace MultiDeptReportingTool.Services.Export
             var smallFont = new XFont("Arial", 9);
             
             var currentY = 40;
+            var pageHeight = page.Height - 40;
             
             // Title
             graphics.DrawString("Executive Dashboard Report", titleFont, XBrushes.Black, 
@@ -91,80 +92,195 @@ namespace MultiDeptReportingTool.Services.Export
             
             try
             {
-                // Total Revenue
-                if (dashboardData?.totalRevenue != null)
+                // Cast to the correct type
+                var dashboard = dashboardData as ExecutiveDashboardDto;
+                if (dashboard == null)
                 {
-                    graphics.DrawString("Total Revenue", headerFont, XBrushes.Black, new XPoint(50, currentY));
-                    currentY += 20;
-                    graphics.DrawString($"${dashboardData.totalRevenue:N2}", normalFont, XBrushes.Black, new XPoint(70, currentY));
-                    currentY += 25;
+                    graphics.DrawString("Invalid dashboard data format", normalFont, XBrushes.Red, new XPoint(50, currentY));
+                    currentY += 30;
                 }
-
-                // Total Expenses
-                if (dashboardData?.totalExpenses != null)
+                else
                 {
-                    graphics.DrawString("Total Expenses", headerFont, XBrushes.Black, new XPoint(50, currentY));
-                    currentY += 20;
-                    graphics.DrawString($"${dashboardData.totalExpenses:N2}", normalFont, XBrushes.Black, new XPoint(70, currentY));
-                    currentY += 25;
-                }
-
-                // Net Profit
-                if (dashboardData?.totalRevenue != null && dashboardData?.totalExpenses != null)
-                {
-                    var netProfit = (decimal)dashboardData.totalRevenue - (decimal)dashboardData.totalExpenses;
-                    graphics.DrawString("Net Profit", headerFont, XBrushes.Black, new XPoint(50, currentY));
-                    currentY += 20;
-                    graphics.DrawString($"${netProfit:N2}", normalFont, XBrushes.Black, new XPoint(70, currentY));
-                    currentY += 25;
-                }
-
-                // Total Employees
-                if (dashboardData?.totalEmployees != null)
-                {
-                    graphics.DrawString("Total Employees", headerFont, XBrushes.Black, new XPoint(50, currentY));
-                    currentY += 20;
-                    graphics.DrawString($"{dashboardData.totalEmployees}", normalFont, XBrushes.Black, new XPoint(70, currentY));
-                    currentY += 25;
-                }
-
-                // Active Projects
-                if (dashboardData?.activeProjects != null)
-                {
-                    graphics.DrawString("Active Projects", headerFont, XBrushes.Black, new XPoint(50, currentY));
-                    currentY += 20;
-                    graphics.DrawString($"{dashboardData.activeProjects}", normalFont, XBrushes.Black, new XPoint(70, currentY));
-                    currentY += 25;
-                }
-
-                // Department Statistics
-                if (dashboardData?.departmentStats != null)
-                {
-                    graphics.DrawString("Department Statistics", headerFont, XBrushes.Black, new XPoint(50, currentY));
-                    currentY += 25;
-
-                    foreach (var dept in dashboardData.departmentStats)
+                    // Company Overview Section
+                    if (dashboard.CompanyOverview != null)
                     {
-                        graphics.DrawString($"• {dept.departmentName}", normalFont, XBrushes.Black, new XPoint(70, currentY));
-                        currentY += 15;
-                        graphics.DrawString($"  Employees: {dept.employeeCount}", smallFont, XBrushes.DarkGray, new XPoint(90, currentY));
-                        currentY += 15;
-                        graphics.DrawString($"  Budget: ${dept.budget:N2}", smallFont, XBrushes.DarkGray, new XPoint(90, currentY));
-                        currentY += 20;
-                    }
-                }
+                        graphics.DrawString("Company Overview", headerFont, XBrushes.Black, new XPoint(50, currentY));
+                        currentY += 25;
 
-                // Monthly Revenue Trend
-                if (dashboardData?.monthlyRevenueTrend != null)
-                {
-                    graphics.DrawString("Monthly Revenue Trend", headerFont, XBrushes.Black, new XPoint(50, currentY));
-                    currentY += 25;
-
-                    foreach (var month in dashboardData.monthlyRevenueTrend)
-                    {
-                        graphics.DrawString($"• {month.month}: ${month.revenue:N2}", normalFont, XBrushes.Black, new XPoint(70, currentY));
+                        // Total Budget
+                        graphics.DrawString($"Total Budget: ${dashboard.CompanyOverview.TotalBudget:N2}", normalFont, XBrushes.Black, new XPoint(70, currentY));
                         currentY += 18;
+
+                        // Budget Utilization
+                        graphics.DrawString($"Budget Utilization: {dashboard.CompanyOverview.BudgetUtilization:P2}", normalFont, XBrushes.Black, new XPoint(70, currentY));
+                        currentY += 18;
+
+                        // Total Departments
+                        graphics.DrawString($"Total Departments: {dashboard.CompanyOverview.TotalDepartments}", normalFont, XBrushes.Black, new XPoint(70, currentY));
+                        currentY += 18;
+
+                        // Active Users
+                        graphics.DrawString($"Active Users: {dashboard.CompanyOverview.ActiveUsers}", normalFont, XBrushes.Black, new XPoint(70, currentY));
+                        currentY += 18;
+
+                        // Overall Efficiency
+                        graphics.DrawString($"Overall Efficiency: {dashboard.CompanyOverview.OverallEfficiency:P2}", normalFont, XBrushes.Black, new XPoint(70, currentY));
+                        currentY += 18;
+
+                        // Performance Status
+                        var statusColor = dashboard.CompanyOverview.PerformanceStatus switch
+                        {
+                            "Critical" => XBrushes.Red,
+                            "Warning" => XBrushes.Orange,
+                            _ => XBrushes.Green
+                        };
+                        graphics.DrawString($"Performance Status: {dashboard.CompanyOverview.PerformanceStatus}", normalFont, statusColor, new XPoint(70, currentY));
+                        currentY += 30;
                     }
+
+                    // Department Summaries Section
+                    if (dashboard.DepartmentSummaries?.Count > 0)
+                    {
+                        if (currentY > pageHeight - 100) // Check if we need a new page
+                        {
+                            graphics.Dispose();
+                            page = document.AddPage();
+                            graphics = XGraphics.FromPdfPage(page);
+                            currentY = 40;
+                        }
+                        
+                        graphics.DrawString("Department Summaries", headerFont, XBrushes.Black, new XPoint(50, currentY));
+                        currentY += 25;
+
+                        foreach (var dept in dashboard.DepartmentSummaries)
+                        {
+                            if (currentY > pageHeight - 80)
+                            {
+                                graphics.Dispose();
+                                page = document.AddPage();
+                                graphics = XGraphics.FromPdfPage(page);
+                                currentY = 40;
+                            }
+                            
+                            graphics.DrawString($"• {dept.DepartmentName}", normalFont, XBrushes.Black, new XPoint(70, currentY));
+                            currentY += 15;
+                            graphics.DrawString($"  Total Reports: {dept.TotalReports} | Completed: {dept.CompletedReports} | Pending: {dept.PendingReports}", smallFont, XBrushes.DarkGray, new XPoint(90, currentY));
+                            currentY += 12;
+                            graphics.DrawString($"  Efficiency Score: {dept.EfficiencyScore:P2} | Budget Utilization: {dept.BudgetUtilization:P2}", smallFont, XBrushes.DarkGray, new XPoint(90, currentY));
+                            currentY += 20;
+                        }
+                    }
+
+                    // Key Metrics Section
+                    if (dashboard.KeyMetrics?.Count > 0)
+                    {
+                        if (currentY > pageHeight - 100)
+                        {
+                            graphics.Dispose();
+                            page = document.AddPage();
+                            graphics = XGraphics.FromPdfPage(page);
+                            currentY = 40;
+                        }
+                        
+                        graphics.DrawString("Key Performance Metrics", headerFont, XBrushes.Black, new XPoint(50, currentY));
+                        currentY += 25;
+
+                        foreach (var metric in dashboard.KeyMetrics.Take(10)) // Limit to top 10 metrics
+                        {
+                            if (currentY > pageHeight - 60)
+                            {
+                                graphics.Dispose();
+                                page = document.AddPage();
+                                graphics = XGraphics.FromPdfPage(page);
+                                currentY = 40;
+                            }
+                            
+                            graphics.DrawString($"• {metric.Name}", normalFont, XBrushes.Black, new XPoint(70, currentY));
+                            currentY += 15;
+                            graphics.DrawString($"  Current: {metric.CurrentValue:N2} {metric.Unit} | Target: {metric.TargetValue:N2} {metric.Unit}", smallFont, XBrushes.DarkGray, new XPoint(90, currentY));
+                            currentY += 12;
+                            
+                            var trendColor = metric.Trend switch
+                            {
+                                "Improving" => XBrushes.Green,
+                                "Declining" => XBrushes.Red,
+                                _ => XBrushes.Gray
+                            };
+                            graphics.DrawString($"  Trend: {metric.Trend} ({metric.ChangePercentage:+0.0;-0.0;0}%)", smallFont, trendColor, new XPoint(90, currentY));
+                            currentY += 20;
+                        }
+                    }
+
+                    // Critical Alerts Section
+                    if (dashboard.CriticalAlerts?.Count > 0)
+                    {
+                        if (currentY > pageHeight - 100)
+                        {
+                            graphics.Dispose();
+                            page = document.AddPage();
+                            graphics = XGraphics.FromPdfPage(page);
+                            currentY = 40;
+                        }
+                        
+                        graphics.DrawString("Critical Alerts", headerFont, XBrushes.Red, new XPoint(50, currentY));
+                        currentY += 25;
+
+                        foreach (var alert in dashboard.CriticalAlerts.Take(5)) // Limit to top 5 alerts
+                        {
+                            if (currentY > pageHeight - 60)
+                            {
+                                graphics.Dispose();
+                                page = document.AddPage();
+                                graphics = XGraphics.FromPdfPage(page);
+                                currentY = 40;
+                            }
+                            
+                            var alertColor = alert.Severity switch
+                            {
+                                "Critical" => XBrushes.Red,
+                                "Warning" => XBrushes.Orange,
+                                _ => XBrushes.Blue
+                            };
+                            graphics.DrawString($"• {alert.Title} ({alert.Severity})", normalFont, alertColor, new XPoint(70, currentY));
+                            currentY += 15;
+                            graphics.DrawString($"  Department: {alert.Department} | Created: {alert.CreatedAt:MMM dd, yyyy}", smallFont, XBrushes.DarkGray, new XPoint(90, currentY));
+                            currentY += 20;
+                        }
+                    }
+
+                    // Top Performers Section
+                    if (dashboard.TopPerformers?.Count > 0)
+                    {
+                        if (currentY > pageHeight - 100)
+                        {
+                            graphics.Dispose();
+                            page = document.AddPage();
+                            graphics = XGraphics.FromPdfPage(page);
+                            currentY = 40;
+                        }
+                        
+                        graphics.DrawString("Top Performers", headerFont, XBrushes.Black, new XPoint(50, currentY));
+                        currentY += 25;
+
+                        foreach (var performer in dashboard.TopPerformers.Take(5)) // Limit to top 5
+                        {
+                            if (currentY > pageHeight - 40)
+                            {
+                                graphics.Dispose();
+                                page = document.AddPage();
+                                graphics = XGraphics.FromPdfPage(page);
+                                currentY = 40;
+                            }
+                            
+                            graphics.DrawString($"{performer.Rank}. {performer.UserName} ({performer.DepartmentName})", normalFont, XBrushes.Black, new XPoint(70, currentY));
+                            currentY += 15;
+                            graphics.DrawString($"   Completed Reports: {performer.CompletedReports} | Efficiency: {performer.Efficiency:P1}", smallFont, XBrushes.DarkGray, new XPoint(90, currentY));
+                            currentY += 20;
+                        }
+                    }
+
+                    // Last Updated Information
+                    graphics.DrawString($"Data last updated: {dashboard.LastUpdated:MMM dd, yyyy HH:mm} UTC", smallFont, XBrushes.Gray, new XPoint(50, currentY));
                 }
             }
             catch (Exception ex)
