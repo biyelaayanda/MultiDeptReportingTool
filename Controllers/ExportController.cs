@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using MultiDeptReportingTool.Services.Export;
 using MultiDeptReportingTool.DTOs.Export;
 using MultiDeptReportingTool.DTOs.Analytics;
+using MultiDeptReportingTool.Data;
+using MultiDeptReportingTool.Models;
 
 namespace MultiDeptReportingTool.Controllers
 {
@@ -16,11 +19,54 @@ namespace MultiDeptReportingTool.Controllers
     {
         private readonly IExportService _exportService;
         private readonly ILogger<ExportController> _logger;
+        private readonly ApplicationDbContext _context;
 
-        public ExportController(IExportService exportService, ILogger<ExportController> logger)
+        public ExportController(IExportService exportService, ILogger<ExportController> logger, ApplicationDbContext context)
         {
             _exportService = exportService;
             _logger = logger;
+            _context = context;
+        }
+
+        private async Task<Users?> GetCurrentUserAsync()
+        {
+            var userId = User.FindFirst("sub")?.Value ?? 
+                        User.FindFirst("userId")?.Value ?? 
+                        User.FindFirst("id")?.Value ??
+                        User.Identity?.Name;
+            
+            if (string.IsNullOrEmpty(userId))
+                return null;
+
+            if (int.TryParse(userId, out int userIdInt))
+            {
+                return await _context.Users.Include(u => u.Department).FirstOrDefaultAsync(u => u.Id == userIdInt);
+            }
+            
+            return await _context.Users.Include(u => u.Department).FirstOrDefaultAsync(u => u.Username == userId || u.Email == userId);
+        }
+
+        private async Task<bool> CanUserAccessDepartment(Users user, int departmentId)
+        {
+            // Admins and Executives can access all departments
+            if (user.Role == "Admin" || user.Role == "Executive")
+                return true;
+            
+            // Department leads and staff can only access their own department
+            return user.DepartmentId == departmentId;
+        }
+
+        private async Task<bool> CanUserAccessReport(Users user, int reportId)
+        {
+            var report = await _context.Reports.Include(r => r.Department).FirstOrDefaultAsync(r => r.Id == reportId);
+            if (report == null) return false;
+
+            // Admins and Executives can access all reports
+            if (user.Role == "Admin" || user.Role == "Executive")
+                return true;
+            
+            // Users can only access reports from their department
+            return user.DepartmentId == report.DepartmentId;
         }
 
         #region Export Endpoints
@@ -157,6 +203,60 @@ namespace MultiDeptReportingTool.Controllers
                 {
                     return BadRequest(new { message = "Export request and format are required" });
                 }
+
+                // Get current user context
+                var currentUser = await GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    return Unauthorized(new { message = "User not found" });
+                }
+
+                // Validate user access to requested data
+                if (request.ReportIds?.Any() == true)
+                {
+                    foreach (var reportId in request.ReportIds)
+                    {
+                        if (!await CanUserAccessReport(currentUser, reportId))
+                        {
+                            return Forbid($"You don't have access to report {reportId}");
+                        }
+                    }
+                }
+
+                // Filter departments based on user access
+                if (request.Departments?.Any() == true)
+                {
+                    var accessibleDepartments = new List<string>();
+                    
+                    foreach (var deptName in request.Departments)
+                    {
+                        var dept = await _context.Departments.FirstOrDefaultAsync(d => d.Name == deptName);
+                        if (dept != null && await CanUserAccessDepartment(currentUser, dept.Id))
+                        {
+                            accessibleDepartments.Add(deptName);
+                        }
+                    }
+                    
+                    request.Departments = accessibleDepartments;
+                    
+                    if (!accessibleDepartments.Any())
+                    {
+                        return Forbid("You don't have access to any of the requested departments");
+                    }
+                }
+                else if (currentUser.Role == "DepartmentLead" || currentUser.Role == "Staff")
+                {
+                    // For department leads and staff, limit to their department only
+                    if (currentUser.Department != null)
+                    {
+                        request.Departments = new List<string> { currentUser.Department.Name };
+                    }
+                }
+
+                // Add user context to the request
+                request.UserId = currentUser.Id;
+                request.UserRole = currentUser.Role;
+                request.UserDepartment = currentUser.Department?.Name;
 
                 ExportResponseDto result = request.Format.ToLower() switch
                 {

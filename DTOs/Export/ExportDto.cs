@@ -21,6 +21,14 @@ namespace MultiDeptReportingTool.DTOs.Export
         public bool IncludeSummary { get; set; } = true;
         public string FileName { get; set; } = string.Empty;
         public Dictionary<string, object> CustomFilters { get; set; } = new Dictionary<string, object>();
+        
+        // User context fields (set by backend)
+        public int? UserId { get; set; }
+        public string? UserRole { get; set; }
+        public string? UserDepartment { get; set; }
+        
+        // Report-specific fields
+        public List<int>? ReportIds { get; set; } = new List<int>();
     }
 
     /// <summary>
