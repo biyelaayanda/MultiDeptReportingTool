@@ -23,7 +23,11 @@ namespace MultiDeptReportingTool.Controllers
         {
             try
             {
-                var (reports, totalCount) = await _reportService.GetReportsAsync(filter);
+                var userId = GetCurrentUserId();
+                var userRole = GetCurrentUserRole();
+                var userDepartmentId = GetCurrentUserDepartmentId();
+
+                var (reports, totalCount) = await _reportService.GetReportsAsync(filter, userId, userRole, userDepartmentId);
 
                 return Ok(new
                 {

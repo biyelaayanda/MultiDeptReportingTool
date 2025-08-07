@@ -197,6 +197,117 @@ namespace MultiDeptReportingTool.Services
             return (reports, totalCount);
         }
 
+        public async Task<(List<ReportResponseDto> Reports, int TotalCount)> GetReportsAsync(ReportFilterDto filter, int userId, string userRole, int? userDepartmentId)
+        {
+            var query = _context.Reports
+                .Include(r => r.Department)
+                .Include(r => r.CreatedByUser)
+                .Include(r => r.ApprovedByUser)
+                .AsQueryable();
+
+            // Apply role-based filtering first
+            if (userRole == "Admin" || userRole == "Executive")
+            {
+                // Admin and Executive can see all reports - no additional filtering needed
+            }
+            else if (userRole == "DepartmentLead")
+            {
+                // Department leads can see reports in their department
+                if (userDepartmentId.HasValue)
+                {
+                    query = query.Where(r => r.DepartmentId == userDepartmentId.Value);
+                }
+                else
+                {
+                    // If no department ID, they can't see any reports
+                    query = query.Where(r => false);
+                }
+            }
+            else if (userRole == "Staff")
+            {
+                // Staff can only see their own reports
+                query = query.Where(r => r.CreatedByUserId == userId);
+            }
+            else
+            {
+                // Unknown role - can only see their own reports
+                query = query.Where(r => r.CreatedByUserId == userId);
+            }
+
+            // Apply additional filters
+            if (filter.DepartmentId.HasValue)
+            {
+                query = query.Where(r => r.DepartmentId == filter.DepartmentId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(filter.Status))
+            {
+                query = query.Where(r => r.Status == filter.Status);
+            }
+
+            if (!string.IsNullOrEmpty(filter.ReportType))
+            {
+                query = query.Where(r => r.ReportType == filter.ReportType);
+            }
+
+            if (filter.StartDate.HasValue)
+            {
+                query = query.Where(r => r.CreatedAt >= filter.StartDate.Value);
+            }
+
+            if (filter.EndDate.HasValue)
+            {
+                query = query.Where(r => r.CreatedAt <= filter.EndDate.Value);
+            }
+
+            if (filter.CreatedByUserId.HasValue)
+            {
+                query = query.Where(r => r.CreatedByUserId == filter.CreatedByUserId.Value);
+            }
+
+            // Get total count after all filters
+            var totalCount = await query.CountAsync();
+
+            // Apply sorting
+            query = filter.SortBy.ToLower() switch
+            {
+                "title" => filter.SortDirection.ToLower() == "asc" ? query.OrderBy(r => r.Title) : query.OrderByDescending(r => r.Title),
+                "status" => filter.SortDirection.ToLower() == "asc" ? query.OrderBy(r => r.Status) : query.OrderByDescending(r => r.Status),
+                "reporttype" => filter.SortDirection.ToLower() == "asc" ? query.OrderBy(r => r.ReportType) : query.OrderByDescending(r => r.ReportType),
+                "department" => filter.SortDirection.ToLower() == "asc" ? query.OrderBy(r => r.Department!.Name) : query.OrderByDescending(r => r.Department!.Name),
+                _ => filter.SortDirection.ToLower() == "asc" ? query.OrderBy(r => r.CreatedAt) : query.OrderByDescending(r => r.CreatedAt)
+            };
+
+            // Apply pagination
+            var reports = await query
+                .Skip((filter.Page - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Select(r => new ReportResponseDto
+                {
+                    Id = r.Id,
+                    Title = r.Title,
+                    Description = r.Description,
+                    ReportType = r.ReportType,
+                    Status = r.Status,
+                    DepartmentId = r.DepartmentId,
+                    DepartmentName = r.Department!.Name,
+                    CreatedByUserId = r.CreatedByUserId,
+                    CreatedByUserName = $"{r.CreatedByUser!.FirstName} {r.CreatedByUser.LastName}".Trim(),
+                    ReportPeriodStart = r.ReportPeriodStart,
+                    ReportPeriodEnd = r.ReportPeriodEnd,
+                    CreatedAt = r.CreatedAt,
+                    SubmittedAt = r.SubmittedAt,
+                    ApprovedAt = r.ApprovedAt,
+                    ApprovedByUserId = r.ApprovedByUserId,
+                    ApprovedByUserName = r.ApprovedByUser != null ? $"{r.ApprovedByUser.FirstName} {r.ApprovedByUser.LastName}".Trim() : null,
+                    Comments = r.Comments,
+                    ReportData = new List<ReportDataResponseDto>() // Don't load full data for list view
+                })
+                .ToListAsync();
+
+            return (reports, totalCount);
+        }
+
         public async Task<ReportResponseDto?> UpdateReportAsync(int reportId, UpdateReportDto updateReportDto, int userId)
         {
             var report = await _context.Reports.FindAsync(reportId);

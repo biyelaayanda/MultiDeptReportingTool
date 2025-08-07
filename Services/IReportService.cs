@@ -9,6 +9,7 @@ namespace MultiDeptReportingTool.Services
         Task<ReportResponseDto?> CreateReportAsync(CreateReportDto createReportDto, int createdByUserId);
         Task<ReportResponseDto?> GetReportByIdAsync(int reportId);
         Task<(List<ReportResponseDto> Reports, int TotalCount)> GetReportsAsync(ReportFilterDto filter);
+        Task<(List<ReportResponseDto> Reports, int TotalCount)> GetReportsAsync(ReportFilterDto filter, int userId, string userRole, int? userDepartmentId);
         Task<ReportResponseDto?> UpdateReportAsync(int reportId, UpdateReportDto updateReportDto, int userId);
         Task<bool> DeleteReportAsync(int reportId, int userId);
 
