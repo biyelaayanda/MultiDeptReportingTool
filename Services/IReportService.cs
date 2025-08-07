@@ -25,5 +25,10 @@ namespace MultiDeptReportingTool.Services
         // User Access Control
         Task<bool> CanUserAccessReportAsync(int reportId, int userId, string userRole, int? userDepartmentId);
         Task<bool> CanUserEditReportAsync(int reportId, int userId, string userRole, int? userDepartmentId);
+
+        // Staff Dashboard Operations
+        Task<object> GetUserStatsAsync(int userId);
+        Task<List<object>> GetUserReportsAsync(int userId, int limit);
+        Task<List<object>> GetUpcomingDeadlinesAsync(int userId);
     }
 }

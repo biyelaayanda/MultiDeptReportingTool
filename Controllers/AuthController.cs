@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MultiDeptReportingTool.DTOs;
 using MultiDeptReportingTool.Services;
+using System.Security.Claims;
 
 namespace MultiDeptReportingTool.Controllers
 {
@@ -56,17 +57,27 @@ namespace MultiDeptReportingTool.Controllers
         [Authorize]
         public IActionResult GetProfile()
         {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var username = User.Identity?.Name;
-            var role = User.FindFirst("role")?.Value;
-            var department = User.FindFirst("Department")?.Value;
-            var email = User.FindFirst("email")?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var department = User.FindFirst("DepartmentId")?.Value;
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                return BadRequest(new { message = "Invalid user ID in token" });
+            }
 
             return Ok(new
             {
+                id = userId,
                 username,
+                firstName = username, // You might want to add separate firstName/lastName fields to your User model
+                lastName = "Member",
                 role,
                 department,
-                email
+                email,
+                joinDate = DateTime.UtcNow // You might want to add this field to your User model
             });
         }
 

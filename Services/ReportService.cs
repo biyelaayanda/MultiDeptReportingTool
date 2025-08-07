@@ -564,5 +564,103 @@ namespace MultiDeptReportingTool.Services
 
             return false;
         }
+
+        // Staff Dashboard Operations
+        public async Task<object> GetUserStatsAsync(int userId)
+        {
+            var now = DateTime.UtcNow;
+            var thisMonth = new DateTime(now.Year, now.Month, 1);
+            
+            var totalReports = await _context.Reports
+                .Where(r => r.CreatedByUserId == userId)
+                .CountAsync();
+                
+            var completedReports = await _context.Reports
+                .Where(r => r.CreatedByUserId == userId && r.Status == "Approved")
+                .CountAsync();
+                
+            var pendingReports = await _context.Reports
+                .Where(r => r.CreatedByUserId == userId && (r.Status == "Submitted" || r.Status == "UnderReview"))
+                .CountAsync();
+                
+            var draftReports = await _context.Reports
+                .Where(r => r.CreatedByUserId == userId && r.Status == "Draft")
+                .CountAsync();
+                
+            var thisMonthSubmissions = await _context.Reports
+                .Where(r => r.CreatedByUserId == userId && r.SubmittedAt >= thisMonth)
+                .CountAsync();
+                
+            var lastSubmission = await _context.Reports
+                .Where(r => r.CreatedByUserId == userId && r.SubmittedAt != null)
+                .OrderByDescending(r => r.SubmittedAt)
+                .FirstOrDefaultAsync();
+
+            var completionRate = totalReports > 0 ? (double)completedReports / totalReports * 100 : 0;
+
+            return new
+            {
+                totalReports,
+                completedReports,
+                pendingReports,
+                draftReports,
+                completionRate = Math.Round(completionRate, 1),
+                thisMonthSubmissions,
+                averageCompletionTime = 2.5, // Could calculate this from actual data
+                lastSubmissionDate = lastSubmission?.SubmittedAt
+            };
+        }
+
+        public async Task<List<object>> GetUserReportsAsync(int userId, int limit)
+        {
+            var reports = await _context.Reports
+                .Where(r => r.CreatedByUserId == userId)
+                .Include(r => r.Department)
+                .OrderByDescending(r => r.CreatedAt)
+                .Take(limit)
+                .Select(r => new
+                {
+                    id = r.Id,
+                    title = r.Title ?? "Untitled Report",
+                    description = r.Description ?? "",
+                    status = r.Status ?? "Draft",
+                    createdAt = r.CreatedAt,
+                    submittedAt = r.SubmittedAt,
+                    approvedAt = r.ApprovedAt,
+                    departmentId = r.DepartmentId,
+                    departmentName = r.Department != null ? r.Department.Name : "Unknown",
+                    reportType = "General", // You might want to add this field
+                    priority = "Normal", // You might want to add this field
+                    comments = r.Comments,
+                    lastModifiedAt = r.CreatedAt
+                })
+                .ToListAsync();
+
+            return reports.Cast<object>().ToList();
+        }
+
+        public async Task<List<object>> GetUpcomingDeadlinesAsync(int userId)
+        {
+            var now = DateTime.UtcNow;
+            var nextMonth = now.AddMonths(1);
+            
+            // For now, return some sample deadlines
+            // You might want to create a separate Deadlines table
+            var userReports = await _context.Reports
+                .Where(r => r.CreatedByUserId == userId && r.Status == "Draft")
+                .Take(3)
+                .Select(r => new
+                {
+                    id = r.Id,
+                    title = r.Title + " - Deadline",
+                    dueDate = now.AddDays(7), // Sample deadline
+                    priority = "Normal",
+                    description = "Complete and submit report",
+                    daysRemaining = 7
+                })
+                .ToListAsync();
+
+            return userReports.Cast<object>().ToList();
+        }
     }
 }

@@ -303,5 +303,59 @@ namespace MultiDeptReportingTool.Controllers
             var deptClaim = User.FindFirst("DepartmentId");
             return deptClaim != null && int.TryParse(deptClaim.Value, out int deptId) ? deptId : null;
         }
+
+        // New endpoints for staff dashboard
+        [HttpGet("user-stats")]
+        public async Task<IActionResult> GetUserStats([FromQuery] int userId)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                var currentUserRole = GetCurrentUserRole();
+                
+                // Users can only see their own stats unless they're executives
+                if (userId != currentUserId && currentUserRole != "Executive")
+                {
+                    return Forbid();
+                }
+
+                var stats = await _reportService.GetUserStatsAsync(userId);
+                return Ok(stats);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, error = ex.Message });
+            }
+        }
+
+        [HttpGet("user")]
+        public async Task<IActionResult> GetUserReports([FromQuery] int? limit)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var reports = await _reportService.GetUserReportsAsync(userId, limit ?? 10);
+                return Ok(reports);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, error = ex.Message });
+            }
+        }
+
+        [HttpGet("deadlines/upcoming")]
+        public async Task<IActionResult> GetUpcomingDeadlines()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var deadlines = await _reportService.GetUpcomingDeadlinesAsync(userId);
+                return Ok(deadlines);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, error = ex.Message });
+            }
+        }
     }
 }
