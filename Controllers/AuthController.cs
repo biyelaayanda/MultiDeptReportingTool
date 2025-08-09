@@ -25,14 +25,31 @@ namespace MultiDeptReportingTool.Controllers
                 return BadRequest(ModelState);
             }
 
-            var result = await _authService.LoginAsync(loginDto);
+            // Get client's IP address for refresh token tracking
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "::1";
+            
+            var result = await _authService.LoginAsync(loginDto, ipAddress);
             
             if (result == null)
             {
                 return Unauthorized(new { message = "Invalid credentials or role mismatch" });
             }
 
-            return Ok(result);
+            // Set refresh token in secure HTTP-only cookie if available
+            if (!string.IsNullOrEmpty(result.RefreshToken))
+            {
+                SetRefreshTokenCookie(result.RefreshToken);
+            }
+
+            // Return response without refresh token in body (it's in cookie)
+            return Ok(new
+            {
+                token = result.Token,
+                username = result.Username,
+                role = result.Role,
+                email = result.Email,
+                expiresAt = result.ExpiresAt
+            });
         }
 
         [HttpPost("register")]
@@ -162,6 +179,33 @@ namespace MultiDeptReportingTool.Controllers
             }
             
             return Ok(new { message = "Token revoked successfully" });
+        }
+
+        [HttpPost("logout-all-devices")]
+        [Authorize]
+        public async Task<IActionResult> LogoutAllDevices()
+        {
+            // Get user ID from claims
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                return BadRequest(new { message = "Invalid user ID in token" });
+            }
+
+            // Get client's IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "::1";
+
+            // Revoke all user tokens
+            var result = await _authService.RevokeAllUserTokensAsync(userId, ipAddress, "Logout from all devices");
+            if (!result)
+            {
+                return BadRequest(new { message = "Failed to revoke all tokens" });
+            }
+
+            // Remove refresh token cookie
+            Response.Cookies.Delete("refreshToken");
+
+            return Ok(new { message = "Successfully logged out from all devices" });
         }
         
         private void SetRefreshTokenCookie(string refreshToken)

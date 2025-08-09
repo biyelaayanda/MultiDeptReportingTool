@@ -75,6 +75,9 @@ builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<DepartmentSpecificSeedingService>();
 builder.Services.AddScoped<ComprehensiveDataSeedingService>();
 
+// Register background services
+builder.Services.AddHostedService<TokenCleanupService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

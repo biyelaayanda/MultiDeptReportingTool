@@ -24,7 +24,7 @@ namespace MultiDeptReportingTool.Services
             _configuration = configuration;
         }
 
-        public async Task<LoginResponseDto?> LoginAsync(LoginDto loginDto)
+        public async Task<LoginResponseDto?> LoginAsync(LoginDto loginDto, string ipAddress = "::1")
         {
             var user = await GetUserByUsernameAsync(loginDto.Username);
             
@@ -48,8 +48,11 @@ namespace MultiDeptReportingTool.Services
             {
                 // Generate refresh token
                 var refreshToken = _jwtService.GenerateRefreshToken();
-                var ipAddress = "::1"; // Default IP if not available
                 var refreshTokenExpiryDays = int.Parse(jwtSettings["RefreshTokenExpiryDays"] ?? "7");
+                var maxTokensPerUser = int.Parse(jwtSettings["MaxRefreshTokensPerUser"] ?? "5");
+                
+                // Clean up old tokens if user has too many
+                await CleanupOldRefreshTokensAsync(user.Id, maxTokensPerUser - 1);
                 
                 // Save refresh token
                 var refreshTokenEntity = new RefreshToken
@@ -287,6 +290,100 @@ namespace MultiDeptReportingTool.Services
                 // If there's any error (like table doesn't exist), return true as a fallback
                 // This is a temporary solution until the migrations are complete
                 return true;
+            }
+        }
+
+        public async Task<bool> RevokeAllUserTokensAsync(int userId, string ipAddress, string? reason = null)
+        {
+            try
+            {
+                // Find all active refresh tokens for the user
+                var userTokens = await _context.RefreshTokens
+                    .Where(r => r.UserId == userId && !r.IsRevoked && !r.IsExpired)
+                    .ToListAsync();
+
+                if (!userTokens.Any())
+                {
+                    return true; // No active tokens to revoke
+                }
+
+                // Revoke all active tokens
+                foreach (var token in userTokens)
+                {
+                    token.IsRevoked = true;
+                    token.RevokedAt = DateTime.UtcNow;
+                    token.RevokedByIp = ipAddress;
+                    token.ReasonRevoked = reason ?? "All user tokens revoked";
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                // If there's any error, return true as a fallback
+                return true;
+            }
+        }
+
+        public async Task CleanupExpiredTokensAsync()
+        {
+            try
+            {
+                // Find all expired tokens that haven't been revoked yet
+                var expiredTokens = await _context.RefreshTokens
+                    .Where(r => !r.IsRevoked && r.ExpiryDate < DateTime.UtcNow)
+                    .ToListAsync();
+
+                if (!expiredTokens.Any())
+                {
+                    return; // No expired tokens to clean up
+                }
+
+                // Mark expired tokens as revoked
+                foreach (var token in expiredTokens)
+                {
+                    token.IsRevoked = true;
+                    token.RevokedAt = DateTime.UtcNow;
+                    token.ReasonRevoked = "Token expired - automatic cleanup";
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception)
+            {
+                // Log error but don't throw - this is a background cleanup operation
+            }
+        }
+
+        private async Task CleanupOldRefreshTokensAsync(int userId, int maxTokensToKeep)
+        {
+            try
+            {
+                // Get active tokens for the user, ordered by creation date (newest first)
+                var activeTokens = await _context.RefreshTokens
+                    .Where(r => r.UserId == userId && !r.IsRevoked && !r.IsExpired)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .ToListAsync();
+
+                // If we have more tokens than allowed, revoke the oldest ones
+                if (activeTokens.Count > maxTokensToKeep)
+                {
+                    var tokensToRevoke = activeTokens.Skip(maxTokensToKeep);
+                    
+                    foreach (var token in tokensToRevoke)
+                    {
+                        token.IsRevoked = true;
+                        token.RevokedAt = DateTime.UtcNow;
+                        token.ReasonRevoked = "Exceeded maximum tokens per user";
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception)
+            {
+                // Log error but don't throw - this shouldn't break the login process
             }
         }
     }
