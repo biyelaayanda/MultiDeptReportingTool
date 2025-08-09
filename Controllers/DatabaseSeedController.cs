@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MultiDeptReportingTool.Data;
 using MultiDeptReportingTool.Models;
 using MultiDeptReportingTool.Services;
+using MultiDeptReportingTool.Services.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -12,14 +13,7 @@ namespace MultiDeptReportingTool.Controllers
     [ApiController]
     public class DatabaseSeedController : ControllerBase
     {
-        private string HashPassword(string password)
-        {
-            using (var sha256 = SHA256.Create())
-            {
-                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-                return Convert.ToBase64String(hashedBytes);
-            }
-        }
+        private readonly IPasswordService _passwordService;
         private readonly ComprehensiveDataSeedingService _seedingService;
         private readonly ILogger<DatabaseSeedController> _logger;
         private readonly ApplicationDbContext _context;
@@ -27,11 +21,13 @@ namespace MultiDeptReportingTool.Controllers
         public DatabaseSeedController(
             ComprehensiveDataSeedingService seedingService,
             ILogger<DatabaseSeedController> logger,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IPasswordService passwordService)
         {
             _seedingService = seedingService;
             _logger = logger;
             _context = context;
+            _passwordService = passwordService;
         }
 
         [HttpPost("seed-comprehensive-data")]
@@ -62,7 +58,7 @@ namespace MultiDeptReportingTool.Controllers
         {
             try
             {
-                _logger.LogInformation("Seeding initial users...");
+                _logger.LogInformation("Seeding initial users with Argon2id hashing...");
 
                 // Remove foreign key constraints first
                 var existingReports = await _context.Reports.ToListAsync();
@@ -77,164 +73,197 @@ namespace MultiDeptReportingTool.Controllers
                 _context.Users.RemoveRange(existingUsers);
                 await _context.SaveChangesAsync();
 
-                var users = new List<Users>
+                // Create users with Argon2id hashed passwords
+                var users = new List<Users>();
+                
+                // Executive Users
+                var (ceoHash, ceoSalt) = await _passwordService.HashPasswordAsync("CEO123!");
+                users.Add(new Users
                 {
-                    // Executive Users
-                    new Users
-                    {
-                        Username = "ceo",
-                        Email = "ceo@example.com",
-                        PasswordHash = HashPassword("CEO123!"),
-                        Role = "Executive",
-                        FirstName = "John",
-                        LastName = "Doe",
-                        DepartmentId = 1, // Finance
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    },
-                    new Users
-                    {
-                        Username = "executive",
-                        Email = "executive@example.com",
-                        PasswordHash = HashPassword("Executive123!"),
-                        Role = "Executive",
-                        FirstName = "Jane",
-                        LastName = "Smith",
-                        DepartmentId = 1, // Finance
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    },
-                    
-                    // Department Leads
-                    new Users
-                    {
-                        Username = "finance-lead",
-                        Email = "finance-lead@example.com",
-                        PasswordHash = HashPassword("FinanceLead123!"),
-                        Role = "DepartmentLead",
-                        FirstName = "Michael",
-                        LastName = "Johnson",
-                        DepartmentId = 1, // Finance
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    },
-                    new Users
-                    {
-                        Username = "hr-lead",
-                        Email = "hr-lead@example.com",
-                        PasswordHash = HashPassword("HRLead123!"),
-                        Role = "DepartmentLead",
-                        FirstName = "Sarah",
-                        LastName = "Williams",
-                        DepartmentId = 2, // HR
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    },
-                    new Users
-                    {
-                        Username = "operations-lead",
-                        Email = "operations-lead@example.com",
-                        PasswordHash = HashPassword("OpsLead123!"),
-                        Role = "DepartmentLead",
-                        FirstName = "David",
-                        LastName = "Brown",
-                        DepartmentId = 3, // Operations
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    },
-                    new Users
-                    {
-                        Username = "compliance-lead",
-                        Email = "compliance-lead@example.com",
-                        PasswordHash = HashPassword("CompLead123!"),
-                        Role = "DepartmentLead",
-                        FirstName = "Emma",
-                        LastName = "Davis",
-                        DepartmentId = 4, // Compliance
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    },
-                    new Users
-                    {
-                        Username = "it-lead",
-                        Email = "it-lead@example.com",
-                        PasswordHash = HashPassword("ITLead123!"),
-                        Role = "DepartmentLead",
-                        FirstName = "Robert",
-                        LastName = "Wilson",
-                        DepartmentId = 5, // IT
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    },
+                    Username = "ceo",
+                    Email = "ceo@example.com",
+                    PasswordHash = ceoHash,
+                    PasswordSalt = ceoSalt,
+                    Role = "Executive",
+                    FirstName = "John",
+                    LastName = "Doe",
+                    DepartmentId = 1, // Finance
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+                
+                var (execHash, execSalt) = await _passwordService.HashPasswordAsync("Executive123!");
+                users.Add(new Users
+                {
+                    Username = "executive",
+                    Email = "executive@example.com",
+                    PasswordHash = execHash,
+                    PasswordSalt = execSalt,
+                    Role = "Executive",
+                    FirstName = "Jane",
+                    LastName = "Smith",
+                    DepartmentId = 1, // Finance
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+                
+                // Department Leads
+                var (financeLeadHash, financeLeadSalt) = await _passwordService.HashPasswordAsync("FinanceLead123!");
+                users.Add(new Users
+                {
+                    Username = "finance-lead",
+                    Email = "finance-lead@example.com",
+                    PasswordHash = financeLeadHash,
+                    PasswordSalt = financeLeadSalt,
+                    Role = "DepartmentLead",
+                    FirstName = "Michael",
+                    LastName = "Johnson",
+                    DepartmentId = 1, // Finance
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+                
+                var (hrLeadHash, hrLeadSalt) = await _passwordService.HashPasswordAsync("HRLead123!");
+                users.Add(new Users
+                {
+                    Username = "hr-lead",
+                    Email = "hr-lead@example.com",
+                    PasswordHash = hrLeadHash,
+                    PasswordSalt = hrLeadSalt,
+                    Role = "DepartmentLead",
+                    FirstName = "Sarah",
+                    LastName = "Williams",
+                    DepartmentId = 2, // HR
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+                
+                var (opsLeadHash, opsLeadSalt) = await _passwordService.HashPasswordAsync("OpsLead123!");
+                users.Add(new Users
+                {
+                    Username = "operations-lead",
+                    Email = "operations-lead@example.com",
+                    PasswordHash = opsLeadHash,
+                    PasswordSalt = opsLeadSalt,
+                    Role = "DepartmentLead",
+                    FirstName = "David",
+                    LastName = "Brown",
+                    DepartmentId = 3, // Operations
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+                
+                var (compLeadHash, compLeadSalt) = await _passwordService.HashPasswordAsync("CompLead123!");
+                users.Add(new Users
+                {
+                    Username = "compliance-lead",
+                    Email = "compliance-lead@example.com",
+                    PasswordHash = compLeadHash,
+                    PasswordSalt = compLeadSalt,
+                    Role = "DepartmentLead",
+                    FirstName = "Emma",
+                    LastName = "Davis",
+                    DepartmentId = 4, // Compliance
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+                
+                var (itLeadHash, itLeadSalt) = await _passwordService.HashPasswordAsync("ITLead123!");
+                users.Add(new Users
+                {
+                    Username = "it-lead",
+                    Email = "it-lead@example.com",
+                    PasswordHash = itLeadHash,
+                    PasswordSalt = itLeadSalt,
+                    Role = "DepartmentLead",
+                    FirstName = "Robert",
+                    LastName = "Wilson",
+                    DepartmentId = 5, // IT
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
 
-                    // Staff Members (one for each department)
-                    new Users
-                    {
-                        Username = "finance-staff",
-                        Email = "finance-staff@example.com",
-                        PasswordHash = HashPassword("Finance123!"),
-                        Role = "Staff",
-                        FirstName = "Tom",
-                        LastName = "Anderson",
-                        DepartmentId = 1,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    },
-                    new Users
-                    {
-                        Username = "hr-staff",
-                        Email = "hr-staff@example.com",
-                        PasswordHash = HashPassword("HR123!"),
-                        Role = "Staff",
-                        FirstName = "Lisa",
-                        LastName = "Taylor",
-                        DepartmentId = 2,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    },
-                    new Users
-                    {
-                        Username = "operations-staff",
-                        Email = "operations-staff@example.com",
-                        PasswordHash = HashPassword("Ops123!"),
-                        Role = "Staff",
-                        FirstName = "Mark",
-                        LastName = "Miller",
-                        DepartmentId = 3,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    },
-                    new Users
-                    {
-                        Username = "compliance-staff",
-                        Email = "compliance-staff@example.com",
-                        PasswordHash = HashPassword("Comp123!"),
-                        Role = "Staff",
-                        FirstName = "Anna",
-                        LastName = "White",
-                        DepartmentId = 4,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    },
-                    new Users
-                    {
-                        Username = "it-staff",
-                        Email = "it-staff@example.com",
-                        PasswordHash = HashPassword("IT123!"),
-                        Role = "Staff",
-                        FirstName = "James",
-                        LastName = "Lee",
-                        DepartmentId = 5,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    }
-                };
+                // Staff Members
+                var (financeStaffHash, financeStaffSalt) = await _passwordService.HashPasswordAsync("Finance123!");
+                users.Add(new Users
+                {
+                    Username = "finance-staff",
+                    Email = "finance-staff@example.com",
+                    PasswordHash = financeStaffHash,
+                    PasswordSalt = financeStaffSalt,
+                    Role = "Staff",
+                    FirstName = "Tom",
+                    LastName = "Anderson",
+                    DepartmentId = 1,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+                
+                var (hrStaffHash, hrStaffSalt) = await _passwordService.HashPasswordAsync("HR123!");
+                users.Add(new Users
+                {
+                    Username = "hr-staff",
+                    Email = "hr-staff@example.com",
+                    PasswordHash = hrStaffHash,
+                    PasswordSalt = hrStaffSalt,
+                    Role = "Staff",
+                    FirstName = "Lisa",
+                    LastName = "Taylor",
+                    DepartmentId = 2,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+                
+                var (opsStaffHash, opsStaffSalt) = await _passwordService.HashPasswordAsync("Ops123!");
+                users.Add(new Users
+                {
+                    Username = "operations-staff",
+                    Email = "operations-staff@example.com",
+                    PasswordHash = opsStaffHash,
+                    PasswordSalt = opsStaffSalt,
+                    Role = "Staff",
+                    FirstName = "Mark",
+                    LastName = "Miller",
+                    DepartmentId = 3,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+                
+                var (compStaffHash, compStaffSalt) = await _passwordService.HashPasswordAsync("Comp123!");
+                users.Add(new Users
+                {
+                    Username = "compliance-staff",
+                    Email = "compliance-staff@example.com",
+                    PasswordHash = compStaffHash,
+                    PasswordSalt = compStaffSalt,
+                    Role = "Staff",
+                    FirstName = "Anna",
+                    LastName = "White",
+                    DepartmentId = 4,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+                
+                var (itStaffHash, itStaffSalt) = await _passwordService.HashPasswordAsync("IT123!");
+                users.Add(new Users
+                {
+                    Username = "it-staff",
+                    Email = "it-staff@example.com",
+                    PasswordHash = itStaffHash,
+                    PasswordSalt = itStaffSalt,
+                    Role = "Staff",
+                    FirstName = "James",
+                    LastName = "Lee",
+                    DepartmentId = 5,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
 
                 await _context.Users.AddRangeAsync(users);
                 await _context.SaveChangesAsync();
 
                 return Ok(new { 
-                    message = "All users seeded successfully",
+                    message = "All users seeded successfully with Argon2id hashing",
                     count = users.Count,
                     roles = users.Select(u => u.Role).Distinct().ToList(),
                     timestamp = DateTime.UtcNow 

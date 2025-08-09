@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "skK+j/9O63ysX+1D8tn7o9rtbxd7Ji22qu2lHJdml2vC3/0A/iXfUA5XVq7EE6UmEN5ZQjTqNnt8PUoJE7KhZA==",
+  "dgSpecHash": "9GOf5lDIMjIbA0Fday4NKky161IRkxEppuCs17qpeq/syIHaU9a9svFPeCDFheNwg1Z1mxd5ba6IahA5yPEv9g==",
   "success": true,
   "projectFilePath": "C:\\Users\\biyel\\source\\repos\\Side projects\\MultiDeptReportingTool\\MultiDeptReportingTool.csproj",
   "expectedPackageFiles": [
@@ -13,6 +13,8 @@
     "C:\\Users\\biyel\\.nuget\\packages\\itext\\8.0.5\\itext.8.0.5.nupkg.sha512",
     "C:\\Users\\biyel\\.nuget\\packages\\itext.commons\\8.0.5\\itext.commons.8.0.5.nupkg.sha512",
     "C:\\Users\\biyel\\.nuget\\packages\\itext7\\8.0.5\\itext7.8.0.5.nupkg.sha512",
+    "C:\\Users\\biyel\\.nuget\\packages\\konscious.security.cryptography.argon2\\1.3.1\\konscious.security.cryptography.argon2.1.3.1.nupkg.sha512",
+    "C:\\Users\\biyel\\.nuget\\packages\\konscious.security.cryptography.blake2\\1.1.1\\konscious.security.cryptography.blake2.1.1.1.nupkg.sha512",
     "C:\\Users\\biyel\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\8.0.10\\microsoft.aspnetcore.authentication.jwtbearer.8.0.10.nupkg.sha512",
     "C:\\Users\\biyel\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\7.0.0\\microsoft.bcl.asyncinterfaces.7.0.0.nupkg.sha512",
     "C:\\Users\\biyel\\.nuget\\packages\\microsoft.bcl.timeprovider\\8.0.1\\microsoft.bcl.timeprovider.8.0.1.nupkg.sha512",

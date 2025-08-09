@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MultiDeptReportingTool.Data;
+using MultiDeptReportingTool.Middleware;
 using MultiDeptReportingTool.Services;
 using MultiDeptReportingTool.Services.DepartmentSpecific;
 using MultiDeptReportingTool.Services.Analytics;
 using MultiDeptReportingTool.Services.Export;
+using MultiDeptReportingTool.Services.Interfaces;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -62,6 +64,7 @@ builder.Services.AddCors(options =>
 
 // Register services
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IDepartmentReportService, DepartmentReportService>();
@@ -83,6 +86,9 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAngularApp");
 
 app.UseRouting();
+
+// Add rate limiting middleware before authentication
+app.UseRateLimiting();
 
 app.UseAuthentication();
 app.UseAuthorization();

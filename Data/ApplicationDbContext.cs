@@ -16,6 +16,7 @@ namespace MultiDeptReportingTool.Data
         public DbSet<Report> Reports { get; set; }
         public DbSet<ReportData> ReportData { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -27,6 +28,7 @@ namespace MultiDeptReportingTool.Data
             ConfigureReports(modelBuilder);
             ConfigureReportData(modelBuilder);
             ConfigureAuditLogs(modelBuilder);
+            ConfigureRefreshTokens(modelBuilder);
 
             // Seed initial data
             SeedData(modelBuilder);
@@ -124,6 +126,26 @@ namespace MultiDeptReportingTool.Data
                       .WithMany(u => u.AuditLogs)
                       .HasForeignKey(al => al.UserId)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+        }
+
+        private void ConfigureRefreshTokens(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Token).IsRequired();
+                entity.Property(e => e.CreatedByIp).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.RevokedByIp).HasMaxLength(50);
+                entity.Property(e => e.ReasonRevoked).HasMaxLength(200);
+                entity.Property(e => e.ReplacedByToken).HasMaxLength(512);
+
+                entity.HasOne(rt => rt.User)
+                      .WithMany(u => u.RefreshTokens)
+                      .HasForeignKey(rt => rt.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.Token).IsUnique();
             });
         }
 
