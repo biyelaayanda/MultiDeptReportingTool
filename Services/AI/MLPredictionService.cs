@@ -599,21 +599,302 @@ namespace MultiDeptReportingTool.Services.AI
 
         private async Task<List<DataPointDto>> GetHistoricalDataAsync(string metric, string department, DateTime startDate, DateTime endDate)
         {
-            // Simulate historical data retrieval
+            try
+            {
+                var data = new List<DataPointDto>();
+
+                // Query real data based on the metric type
+                switch (metric.ToLower())
+                {
+                    case "efficiency":
+                    case "productivity":
+                        data = await GetReportEfficiencyData(department, startDate, endDate);
+                        break;
+                        
+                    case "budget":
+                    case "budget_utilization":
+                        data = await GetBudgetData(department, startDate, endDate);
+                        break;
+                        
+                    case "workload":
+                    case "report_count":
+                        data = await GetWorkloadData(department, startDate, endDate);
+                        break;
+                        
+                    case "staff_count":
+                    case "team_size":
+                        data = await GetStaffCountData(department, startDate, endDate);
+                        break;
+                        
+                    case "completion_rate":
+                        data = await GetCompletionRateData(department, startDate, endDate);
+                        break;
+                        
+                    default:
+                        // Fallback to aggregated report metrics
+                        data = await GetGeneralMetricData(metric, department, startDate, endDate);
+                        break;
+                }
+
+                // If no real data found, generate some realistic baseline data
+                if (!data.Any())
+                {
+                    _logger.LogWarning($"No historical data found for {metric} in {department}, generating baseline data");
+                    data = GenerateBaselineData(metric, department, startDate, endDate);
+                }
+                else
+                {
+                    _logger.LogInformation($"Using REAL DATA: Retrieved {data.Count} data points for {metric} in {department} from database");
+                }
+
+                _logger.LogInformation($"Retrieved {data.Count} data points for {metric} in {department}");
+                return data;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving historical data for {metric} in {department}");
+                // Fallback to baseline data on error
+                return GenerateBaselineData(metric, department, startDate, endDate);
+            }
+        }
+
+        private async Task<List<DataPointDto>> GetReportEfficiencyData(string department, DateTime startDate, DateTime endDate)
+        {
+            var query = _context.Reports
+                .Include(r => r.Department)
+                .Where(r => r.CreatedAt >= startDate && r.CreatedAt <= endDate);
+
+            if (department != "all" && !string.IsNullOrEmpty(department))
+            {
+                // Handle department name mapping for common abbreviations
+                var normalizedDepartment = NormalizeDepartmentName(department);
+                query = query.Where(r => r.Department.Name.ToLower().Contains(normalizedDepartment.ToLower()) || 
+                                        r.Department.Name.ToLower() == normalizedDepartment.ToLower());
+            }
+
+            var reportData = await query
+                .GroupBy(r => new { 
+                    Year = r.CreatedAt.Year, 
+                    Month = r.CreatedAt.Month,
+                    Day = r.CreatedAt.Day
+                })
+                .Select(g => new {
+                    Date = new DateTime(g.Key.Year, g.Key.Month, g.Key.Day),
+                    TotalReports = g.Count(),
+                    ApprovedReports = g.Count(r => r.Status == "Approved"),
+                    AverageProcessingDays = g.Average(r => r.SubmittedAt != null && r.ApprovedAt != null 
+                        ? EF.Functions.DateDiffDay(r.SubmittedAt, r.ApprovedAt) : 0)
+                })
+                .OrderBy(x => x.Date)
+                .ToListAsync();
+
+            return reportData.Select(d => new DataPointDto
+            {
+                Date = d.Date,
+                Value = d.TotalReports > 0 ? (decimal)(d.ApprovedReports * 100.0 / d.TotalReports) : 0,
+                Label = d.Date.ToString("MMM yyyy"),
+                Category = "Efficiency"
+            }).ToList();
+        }
+
+        private string NormalizeDepartmentName(string department)
+        {
+            return department.ToLower() switch
+            {
+                "it" => "Information Technology",
+                "hr" => "Human Resources",
+                "finance" => "Finance",
+                "ops" => "Operations",
+                "compliance" => "Compliance",
+                _ => department
+            };
+        }
+
+        private async Task<List<DataPointDto>> GetBudgetData(string department, DateTime startDate, DateTime endDate)
+        {
+            // For now, calculate budget utilization based on report processing costs
+            var query = _context.Reports
+                .Include(r => r.Department)
+                .Where(r => r.CreatedAt >= startDate && r.CreatedAt <= endDate);
+
+            if (department != "all" && !string.IsNullOrEmpty(department))
+            {
+                var normalizedDepartment = NormalizeDepartmentName(department);
+                query = query.Where(r => r.Department.Name.ToLower().Contains(normalizedDepartment.ToLower()) || 
+                                        r.Department.Name.ToLower() == normalizedDepartment.ToLower());
+            }
+
+            var monthlyData = await query
+                .GroupBy(r => new { r.CreatedAt.Year, r.CreatedAt.Month })
+                .Select(g => new {
+                    Date = new DateTime(g.Key.Year, g.Key.Month, 1),
+                    ReportCount = g.Count(),
+                    ProcessingCost = g.Count() * 50 // Estimated cost per report
+                })
+                .OrderBy(x => x.Date)
+                .ToListAsync();
+
+            return monthlyData.Select(d => new DataPointDto
+            {
+                Date = d.Date,
+                Value = d.ProcessingCost,
+                Label = d.Date.ToString("MMM yyyy"),
+                Category = "Budget"
+            }).ToList();
+        }
+
+        private async Task<List<DataPointDto>> GetWorkloadData(string department, DateTime startDate, DateTime endDate)
+        {
+            var query = _context.Reports
+                .Include(r => r.Department)
+                .Where(r => r.CreatedAt >= startDate && r.CreatedAt <= endDate);
+
+            if (department != "all" && !string.IsNullOrEmpty(department))
+            {
+                var normalizedDepartment = NormalizeDepartmentName(department);
+                query = query.Where(r => r.Department.Name.ToLower().Contains(normalizedDepartment.ToLower()) || 
+                                        r.Department.Name.ToLower() == normalizedDepartment.ToLower());
+            }
+
+            var weeklyData = await query
+                .GroupBy(r => new { 
+                    Year = r.CreatedAt.Year, 
+                    Month = r.CreatedAt.Month,
+                    Day = r.CreatedAt.Day
+                })
+                .Select(g => new {
+                    Date = new DateTime(g.Key.Year, g.Key.Month, g.Key.Day),
+                    ReportCount = g.Count()
+                })
+                .OrderBy(x => x.Date)
+                .ToListAsync();
+
+            return weeklyData.Select(d => new DataPointDto
+            {
+                Date = d.Date,
+                Value = d.ReportCount,
+                Label = d.Date.ToString("MMM dd"),
+                Category = "Workload"
+            }).ToList();
+        }
+
+        private async Task<List<DataPointDto>> GetStaffCountData(string department, DateTime startDate, DateTime endDate)
+        {
+            var query = _context.Users.AsQueryable();
+
+            if (department != "all" && !string.IsNullOrEmpty(department))
+            {
+                query = query.Where(u => u.Department.Name.ToLower() == department.ToLower());
+            }
+
+            var currentStaffCount = await query.CountAsync();
+
+            // Generate monthly staff count data (simulated growth/changes)
             var data = new List<DataPointDto>();
             var current = startDate;
-            var baseValue = _random.Next(50, 100);
+            var baseCount = Math.Max(1, currentStaffCount - 2);
 
             while (current <= endDate)
             {
+                var variance = _random.Next(-1, 2); // Small staff changes
+                var staffCount = Math.Max(1, baseCount + variance);
+                
                 data.Add(new DataPointDto
                 {
                     Date = current,
-                    Value = baseValue + _random.Next(-10, 10),
+                    Value = staffCount,
+                    Label = current.ToString("MMM yyyy"),
+                    Category = "Staff Count"
+                });
+                
+                current = current.AddMonths(1);
+                baseCount = staffCount;
+            }
+
+            return data;
+        }
+
+        private async Task<List<DataPointDto>> GetCompletionRateData(string department, DateTime startDate, DateTime endDate)
+        {
+            var query = _context.Reports
+                .Where(r => r.CreatedAt >= startDate && r.CreatedAt <= endDate);
+
+            if (department != "all" && !string.IsNullOrEmpty(department))
+            {
+                query = query.Where(r => r.Department.Name.ToLower() == department.ToLower());
+            }
+
+            var monthlyData = await query
+                .GroupBy(r => new { r.CreatedAt.Year, r.CreatedAt.Month })
+                .Select(g => new {
+                    Date = new DateTime(g.Key.Year, g.Key.Month, 1),
+                    TotalReports = g.Count(),
+                    CompletedReports = g.Count(r => r.Status == "Approved" || r.Status == "Completed")
+                })
+                .OrderBy(x => x.Date)
+                .ToListAsync();
+
+            return monthlyData.Select(d => new DataPointDto
+            {
+                Date = d.Date,
+                Value = d.TotalReports > 0 ? (decimal)(d.CompletedReports * 100.0 / d.TotalReports) : 0,
+                Label = d.Date.ToString("MMM yyyy"),
+                Category = "Completion Rate"
+            }).ToList();
+        }
+
+        private async Task<List<DataPointDto>> GetGeneralMetricData(string metric, string department, DateTime startDate, DateTime endDate)
+        {
+            // For unknown metrics, try to extract from report data or generate meaningful baseline
+            var reportCount = await _context.Reports
+                .Where(r => r.CreatedAt >= startDate && r.CreatedAt <= endDate)
+                .CountAsync();
+
+            if (reportCount > 0)
+            {
+                // Use report activity as a general metric baseline
+                return await GetWorkloadData(department, startDate, endDate);
+            }
+
+            return GenerateBaselineData(metric, department, startDate, endDate);
+        }
+
+        private List<DataPointDto> GenerateBaselineData(string metric, string department, DateTime startDate, DateTime endDate)
+        {
+            var data = new List<DataPointDto>();
+            var current = startDate;
+            var baseValue = metric.ToLower() switch
+            {
+                "efficiency" or "completion_rate" => _random.Next(70, 90),
+                "budget" or "budget_utilization" => _random.Next(10000, 50000),
+                "workload" or "report_count" => _random.Next(10, 50),
+                "staff_count" => _random.Next(5, 20),
+                _ => _random.Next(50, 100)
+            };
+
+            var interval = (endDate - startDate).TotalDays > 90 ? TimeSpan.FromDays(30) : TimeSpan.FromDays(7);
+
+            while (current <= endDate)
+            {
+                var variance = metric.ToLower() switch
+                {
+                    "efficiency" or "completion_rate" => _random.Next(-5, 8),
+                    "budget" => _random.Next(-2000, 3000),
+                    "workload" => _random.Next(-3, 8),
+                    "staff_count" => _random.Next(-1, 2),
+                    _ => _random.Next(-10, 10)
+                };
+
+                data.Add(new DataPointDto
+                {
+                    Date = current,
+                    Value = Math.Max(0, baseValue + variance),
                     Label = current.ToString("yyyy-MM-dd"),
                     Category = metric
                 });
-                current = current.AddDays(1);
+                
+                current = current.Add(interval);
+                baseValue = Math.Max(1, baseValue + variance / 3); // Gradual baseline drift
             }
 
             return data;

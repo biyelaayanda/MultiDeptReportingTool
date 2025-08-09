@@ -278,5 +278,54 @@ namespace MultiDeptReportingTool.Controllers
                 });
             }
         }
+
+        [HttpGet("verify-data")]
+        public async Task<IActionResult> VerifySeededData()
+        {
+            try
+            {
+                var departmentCount = await _context.Departments.CountAsync();
+                var userCount = await _context.Users.CountAsync();
+                var reportCount = await _context.Reports.CountAsync();
+                var reportDataCount = await _context.ReportData.CountAsync();
+                var auditLogCount = await _context.AuditLogs.CountAsync();
+
+                var departments = await _context.Departments.Select(d => d.Name).ToListAsync();
+                var recentReports = await _context.Reports
+                    .Include(r => r.Department)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .Take(5)
+                    .Select(r => new {
+                        r.Title,
+                        r.Status,
+                        Department = r.Department.Name,
+                        r.CreatedAt
+                    })
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    summary = new
+                    {
+                        departments = departmentCount,
+                        users = userCount,
+                        reports = reportCount,
+                        reportData = reportDataCount,
+                        auditLogs = auditLogCount
+                    },
+                    departmentNames = departments,
+                    recentReports = recentReports,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verifying seeded data");
+                return StatusCode(500, new { 
+                    message = "Error verifying seeded data", 
+                    error = ex.Message 
+                });
+            }
+        }
     }
 }
