@@ -17,6 +17,18 @@ namespace MultiDeptReportingTool.Data
         public DbSet<ReportData> ReportData { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        
+        // Phase 2: Enhanced RBAC
+        public DbSet<Permission> Permissions { get; set; }
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<RolePermission> RolePermissions { get; set; }
+        public DbSet<UserPermission> UserPermissions { get; set; }
+        public DbSet<DepartmentPermission> DepartmentPermissions { get; set; }
+        
+        // Phase 2: Audit & Monitoring
+        public DbSet<SecurityAuditLog> SecurityAuditLogs { get; set; }
+        public DbSet<SecurityAlert> SecurityAlerts { get; set; }
+        public DbSet<SystemEvent> SystemEvents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -29,6 +41,18 @@ namespace MultiDeptReportingTool.Data
             ConfigureReportData(modelBuilder);
             ConfigureAuditLogs(modelBuilder);
             ConfigureRefreshTokens(modelBuilder);
+            
+            // Phase 2: Enhanced RBAC
+            ConfigurePermissions(modelBuilder);
+            ConfigureRoles(modelBuilder);
+            ConfigureRolePermissions(modelBuilder);
+            ConfigureUserPermissions(modelBuilder);
+            ConfigureDepartmentPermissions(modelBuilder);
+            
+            // Phase 2: Audit & Monitoring
+            ConfigureSecurityAuditLogs(modelBuilder);
+            ConfigureSecurityAlerts(modelBuilder);
+            ConfigureSystemEvents(modelBuilder);
 
             // Seed initial data
             SeedData(modelBuilder);
@@ -53,6 +77,12 @@ namespace MultiDeptReportingTool.Data
                       .WithMany(d => d.Users)
                       .HasForeignKey(e => e.DepartmentId)
                       .OnDelete(DeleteBehavior.Restrict);
+
+                // Relationship with Role (Phase 2 RBAC)
+                entity.HasOne(e => e.RoleEntity)
+                      .WithMany(r => r.Users)
+                      .HasForeignKey(e => e.RoleId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
         }
 
@@ -146,6 +176,185 @@ namespace MultiDeptReportingTool.Data
                       .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(e => e.Token).IsUnique();
+            });
+        }
+
+        // Phase 2: Enhanced RBAC Configuration
+        private void ConfigurePermissions(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Permission>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Resource).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Action).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Description).HasMaxLength(500);
+                
+                entity.HasIndex(e => new { e.Resource, e.Action }).IsUnique();
+            });
+        }
+
+        private void ConfigureRoles(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Role>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Description).HasMaxLength(500);
+                
+                entity.HasIndex(e => e.Name).IsUnique();
+            });
+        }
+
+        private void ConfigureRolePermissions(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<RolePermission>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                entity.HasOne(e => e.Role)
+                      .WithMany(r => r.RolePermissions)
+                      .HasForeignKey(e => e.RoleId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasOne(e => e.Permission)
+                      .WithMany(p => p.RolePermissions)
+                      .HasForeignKey(e => e.PermissionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasOne(e => e.GrantedByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.GrantedByUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                      
+                entity.HasIndex(e => new { e.RoleId, e.PermissionId }).IsUnique();
+            });
+        }
+
+        private void ConfigureUserPermissions(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<UserPermission>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasOne(e => e.Permission)
+                      .WithMany(p => p.UserPermissions)
+                      .HasForeignKey(e => e.PermissionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasOne(e => e.GrantedByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.GrantedByUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+        }
+
+        private void ConfigureDepartmentPermissions(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<DepartmentPermission>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                entity.HasOne(e => e.Department)
+                      .WithMany()
+                      .HasForeignKey(e => e.DepartmentId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasOne(e => e.Permission)
+                      .WithMany(p => p.DepartmentPermissions)
+                      .HasForeignKey(e => e.PermissionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasOne(e => e.GrantedByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.GrantedByUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+        }
+
+        // Phase 2: Audit & Monitoring Configuration
+        private void ConfigureSecurityAuditLogs(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<SecurityAuditLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Action).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Resource).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Username).HasMaxLength(50);
+                entity.Property(e => e.IpAddress).IsRequired().HasMaxLength(45);
+                entity.Property(e => e.UserAgent).HasMaxLength(500);
+                entity.Property(e => e.SessionId).HasMaxLength(100);
+                entity.Property(e => e.Severity).HasMaxLength(20);
+                entity.Property(e => e.FailureReason).HasMaxLength(500);
+                
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.NoAction);
+                      
+                entity.HasOne(e => e.Department)
+                      .WithMany()
+                      .HasForeignKey(e => e.DepartmentId)
+                      .OnDelete(DeleteBehavior.NoAction);
+                      
+                entity.HasIndex(e => e.Timestamp);
+                entity.HasIndex(e => e.Action);
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.IpAddress);
+            });
+        }
+
+        private void ConfigureSecurityAlerts(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<SecurityAlert>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.AlertType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).IsRequired().HasMaxLength(1000);
+                entity.Property(e => e.Severity).HasMaxLength(20);
+                entity.Property(e => e.IpAddress).HasMaxLength(45);
+                entity.Property(e => e.ResolutionNotes).HasMaxLength(1000);
+                
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.NoAction);
+                      
+                entity.HasOne(e => e.ResolvedByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.ResolvedByUserId)
+                      .OnDelete(DeleteBehavior.NoAction);
+                      
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.AlertType);
+                entity.HasIndex(e => e.Severity);
+                entity.HasIndex(e => e.IsResolved);
+            });
+        }
+
+        private void ConfigureSystemEvents(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<SystemEvent>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.EventType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Source).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Message).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Level).HasMaxLength(20);
+                entity.Property(e => e.CorrelationId).HasMaxLength(100);
+                entity.Property(e => e.UserId).HasMaxLength(50);
+                entity.Property(e => e.IpAddress).HasMaxLength(45);
+                
+                entity.HasIndex(e => e.Timestamp);
+                entity.HasIndex(e => e.EventType);
+                entity.HasIndex(e => e.Level);
+                entity.HasIndex(e => e.CorrelationId);
             });
         }
 

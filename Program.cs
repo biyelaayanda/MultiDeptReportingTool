@@ -69,6 +69,11 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IDepartmentReportService, DepartmentReportService>();
 
+// Register Phase 2: Enhanced RBAC and Audit Services
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<SecuritySeedingService>();
+
 // Register Phase 4 Analytics and Export Services
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IExportService, ExportService>();
