@@ -8,6 +8,7 @@ using MultiDeptReportingTool.Services.DepartmentSpecific;
 using MultiDeptReportingTool.Services.Analytics;
 using MultiDeptReportingTool.Services.Export;
 using MultiDeptReportingTool.Services.Interfaces;
+using MultiDeptReportingTool.Services.AI;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -79,6 +80,9 @@ builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<DepartmentSpecificSeedingService>();
 builder.Services.AddScoped<ComprehensiveDataSeedingService>();
+
+// Register Phase 3: Advanced Analytics & AI Services
+builder.Services.AddScoped<IMLPredictionService, MLPredictionService>();
 
 // Register background services
 builder.Services.AddHostedService<TokenCleanupService>();
