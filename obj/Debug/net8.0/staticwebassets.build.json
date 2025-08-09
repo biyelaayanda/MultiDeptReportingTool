@@ -1,1 +1,11 @@
-{"Version":1,"Hash":"H9so5Ra8IJlnxLHoWhOLnpWI9+/o1oSHPSXjBZTne5c=","Source":"MultiDeptReportingTool","BasePath":"_content/MultiDeptReportingTool","Mode":"Default","ManifestType":"Build","ReferencedProjectsConfiguration":[],"DiscoveryPatterns":[],"Assets":[],"Endpoints":[]}
+{
+  "Version": 1,
+  "Hash": "T2aNiPDd9y4woWhCz9Gzn3OF4CoCtmonw0o1VjVePAc=",
+  "Source": "MultiDeptReportingTool",
+  "BasePath": "_content/MultiDeptReportingTool",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}

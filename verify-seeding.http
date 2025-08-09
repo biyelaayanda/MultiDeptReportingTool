@@ -1,0 +1,15 @@
+### Get All Departments
+GET http://localhost:5111/api/Departments
+Content-Type: application/json
+
+### Get All Users
+GET http://localhost:5111/api/Users
+Content-Type: application/json
+
+### Get All Reports
+GET http://localhost:5111/api/Reports
+Content-Type: application/json
+
+### Get Audit Logs
+GET http://localhost:5111/api/AuditLogs
+Content-Type: application/json

@@ -47,6 +47,19 @@
           }
         }
       },
+      "BCrypt.Net-Next/4.0.3": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/BCrypt.Net-Next.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/BCrypt.Net-Next.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "EPPlus/8.0.8": {
         "type": "package",
         "dependencies": {
@@ -2951,6 +2964,37 @@
         "azureicon.png",
         "lib/netstandard2.0/Azure.Identity.dll",
         "lib/netstandard2.0/Azure.Identity.xml"
+      ]
+    },
+    "BCrypt.Net-Next/4.0.3": {
+      "sha512": "W+U9WvmZQgi5cX6FS5GDtDoPzUCV4LkBLkywq/kRZhuDwcbavOzcDAr3LXJFqHUi952Yj3LEYoWW0jbEUQChsA==",
+      "type": "package",
+      "path": "bcrypt.net-next/4.0.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "bcrypt.net-next.4.0.3.nupkg.sha512",
+        "bcrypt.net-next.nuspec",
+        "ico.png",
+        "lib/net20/BCrypt.Net-Next.dll",
+        "lib/net20/BCrypt.Net-Next.xml",
+        "lib/net35/BCrypt.Net-Next.dll",
+        "lib/net35/BCrypt.Net-Next.xml",
+        "lib/net462/BCrypt.Net-Next.dll",
+        "lib/net462/BCrypt.Net-Next.xml",
+        "lib/net472/BCrypt.Net-Next.dll",
+        "lib/net472/BCrypt.Net-Next.xml",
+        "lib/net48/BCrypt.Net-Next.dll",
+        "lib/net48/BCrypt.Net-Next.xml",
+        "lib/net5.0/BCrypt.Net-Next.dll",
+        "lib/net5.0/BCrypt.Net-Next.xml",
+        "lib/net6.0/BCrypt.Net-Next.dll",
+        "lib/net6.0/BCrypt.Net-Next.xml",
+        "lib/netstandard2.0/BCrypt.Net-Next.dll",
+        "lib/netstandard2.0/BCrypt.Net-Next.xml",
+        "lib/netstandard2.1/BCrypt.Net-Next.dll",
+        "lib/netstandard2.1/BCrypt.Net-Next.xml",
+        "readme.md"
       ]
     },
     "EPPlus/8.0.8": {
@@ -8983,6 +9027,7 @@
   },
   "projectFileDependencyGroups": {
     "net8.0": [
+      "BCrypt.Net-Next >= 4.0.3",
       "EPPlus >= 8.0.8",
       "Microsoft.AspNetCore.Authentication.JwtBearer >= 8.0.10",
       "Microsoft.EntityFrameworkCore >= 9.0.8",
@@ -8995,23 +9040,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\biyelaa\\.nuget\\packages\\": {},
+    "C:\\Users\\biyel\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\biyelaa\\source\\repos\\SideProjects\\MultiDeptReportingTool\\MultiDeptReportingTool.csproj",
+      "projectUniqueName": "C:\\Users\\biyel\\source\\repos\\Side projects\\MultiDeptReportingTool\\MultiDeptReportingTool.csproj",
       "projectName": "MultiDeptReportingTool",
-      "projectPath": "C:\\Users\\biyelaa\\source\\repos\\SideProjects\\MultiDeptReportingTool\\MultiDeptReportingTool.csproj",
-      "packagesPath": "C:\\Users\\biyelaa\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\biyelaa\\source\\repos\\SideProjects\\MultiDeptReportingTool\\obj\\",
+      "projectPath": "C:\\Users\\biyel\\source\\repos\\Side projects\\MultiDeptReportingTool\\MultiDeptReportingTool.csproj",
+      "packagesPath": "C:\\Users\\biyel\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\biyel\\source\\repos\\Side projects\\MultiDeptReportingTool\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\biyelaa\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\biyel\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -9020,6 +9065,7 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -9037,13 +9083,16 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      },
-      "SdkAnalysisLevel": "9.0.300"
+      }
     },
     "frameworks": {
       "net8.0": {
         "targetAlias": "net8.0",
         "dependencies": {
+          "BCrypt.Net-Next": {
+            "target": "Package",
+            "version": "[4.0.3, )"
+          },
           "EPPlus": {
             "target": "Package",
             "version": "[8.0.8, )"
@@ -9104,7 +9153,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.303/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
       }
     }
   },
@@ -9113,7 +9162,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "MultiDeptReportingTool depends on System.IdentityModel.Tokens.Jwt (>= 8.0.10) but System.IdentityModel.Tokens.Jwt 8.0.10 was not found. System.IdentityModel.Tokens.Jwt 8.1.0 was resolved instead.",
+      "message": "MultiDeptReportingTool depends on System.IdentityModel.Tokens.Jwt (>= 8.0.10) but System.IdentityModel.Tokens.Jwt 8.0.10 was not found. An approximate best match of System.IdentityModel.Tokens.Jwt 8.1.0 was resolved.",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net8.0"
