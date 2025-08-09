@@ -1,0 +1,40 @@
+@baseUrl = http://localhost:5111
+
+### Login
+POST {{baseUrl}}/api/Auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "Admin123!"
+}
+
+### Store the token and refreshToken from the response above
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+@refreshToken = abc123...
+
+### Get profile with token
+GET {{baseUrl}}/api/Auth/profile
+Authorization: Bearer {{token}}
+
+### Refresh token
+POST {{baseUrl}}/api/Auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Revoke token
+POST {{baseUrl}}/api/Auth/revoke-token
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Logout
+POST {{baseUrl}}/api/Auth/logout
+Authorization: Bearer {{token}}

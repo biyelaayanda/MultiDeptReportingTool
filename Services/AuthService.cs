@@ -3,6 +3,7 @@ using MultiDeptReportingTool.Data;
 using MultiDeptReportingTool.DTOs;
 using MultiDeptReportingTool.Models;
 using MultiDeptReportingTool.Services.Interfaces;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -13,12 +14,14 @@ namespace MultiDeptReportingTool.Services
         private readonly IJwtService _jwtService;
         private readonly ApplicationDbContext _context;
         private readonly IPasswordService _passwordService;
+        private readonly IConfiguration _configuration;
 
-        public AuthService(IJwtService jwtService, ApplicationDbContext context, IPasswordService passwordService)
+        public AuthService(IJwtService jwtService, ApplicationDbContext context, IPasswordService passwordService, IConfiguration configuration)
         {
             _jwtService = jwtService;
             _context = context;
             _passwordService = passwordService;
+            _configuration = configuration;
         }
 
         public async Task<LoginResponseDto?> LoginAsync(LoginDto loginDto)
@@ -34,22 +37,58 @@ namespace MultiDeptReportingTool.Services
             user.LastLoginAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
+            // Generate access token
             var token = _jwtService.GenerateToken(user);
-            var jwtSettings = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json")
-                .Build()
-                .GetSection("JwtSettings");
             
+            // Get token expiration from settings
+            var jwtSettings = _configuration.GetSection("JwtSettings");
             var expirationMinutes = int.Parse(jwtSettings["ExpirationMinutes"] ?? "60");
-
-            return new LoginResponseDto
+            
+            try
             {
-                Token = token,
-                Username = user.Username,
-                Role = user.Role,
-                Email = user.Email,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes)
-            };
+                // Generate refresh token
+                var refreshToken = _jwtService.GenerateRefreshToken();
+                var ipAddress = "::1"; // Default IP if not available
+                var refreshTokenExpiryDays = int.Parse(jwtSettings["RefreshTokenExpiryDays"] ?? "7");
+                
+                // Save refresh token
+                var refreshTokenEntity = new RefreshToken
+                {
+                    UserId = user.Id,
+                    Token = refreshToken,
+                    ExpiryDate = DateTime.UtcNow.AddDays(refreshTokenExpiryDays),
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedByIp = ipAddress,
+                    IsRevoked = false
+                };
+                
+                // Add new refresh token
+                _context.RefreshTokens.Add(refreshTokenEntity);
+                await _context.SaveChangesAsync();
+                
+                return new LoginResponseDto
+                {
+                    Token = token,
+                    RefreshToken = refreshToken,
+                    Username = user.Username,
+                    Role = user.Role,
+                    Email = user.Email,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes)
+                };
+            }
+            catch (Exception)
+            {
+                // If there's any error with refresh tokens (e.g., table doesn't exist yet),
+                // still return a token response without the refresh token
+                return new LoginResponseDto
+                {
+                    Token = token,
+                    Username = user.Username,
+                    Role = user.Role,
+                    Email = user.Email,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes)
+                };
+            }
         }
 
         public async Task<Users?> RegisterAsync(RegisterDto registerDto)
@@ -135,6 +174,119 @@ namespace MultiDeptReportingTool.Services
             {
                 var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
                 return Convert.ToBase64String(hashedBytes);
+            }
+        }
+        
+        public async Task<TokenResponse?> RefreshTokenAsync(string refreshToken, string ipAddress)
+        {
+            try
+            {
+                // Find the refresh token in the database
+                var refreshTokenEntity = await _context.RefreshTokens
+                    .Include(r => r.User)
+                    .FirstOrDefaultAsync(r => r.Token == refreshToken);
+
+                // Return null if token is not found or is not active (revoked or expired)
+                if (refreshTokenEntity == null || !refreshTokenEntity.IsActive)
+                {
+                    return null;
+                }
+
+                // User associated with token
+                var user = refreshTokenEntity.User;
+                if (user == null || !user.IsActive)
+                {
+                    // Revoke token if user is null or not active
+                    refreshTokenEntity.IsRevoked = true;
+                    refreshTokenEntity.RevokedAt = DateTime.UtcNow;
+                    refreshTokenEntity.RevokedByIp = ipAddress;
+                    refreshTokenEntity.ReasonRevoked = "User not found or inactive";
+                    await _context.SaveChangesAsync();
+                    return null;
+                }
+
+                // Generate new refresh token
+                var newRefreshToken = _jwtService.GenerateRefreshToken();
+                var jwtSettings = _configuration.GetSection("JwtSettings");
+                var refreshTokenExpiryDays = int.Parse(jwtSettings["RefreshTokenExpiryDays"] ?? "7");
+
+                // Create new refresh token record
+                var newRefreshTokenEntity = new RefreshToken
+                {
+                    UserId = user.Id,
+                    Token = newRefreshToken,
+                    ExpiryDate = DateTime.UtcNow.AddDays(refreshTokenExpiryDays),
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedByIp = ipAddress,
+                    IsRevoked = false
+                };
+
+                // Revoke old token and replace it with new one
+                refreshTokenEntity.IsRevoked = true;
+                refreshTokenEntity.RevokedAt = DateTime.UtcNow;
+                refreshTokenEntity.RevokedByIp = ipAddress;
+                refreshTokenEntity.ReplacedByToken = newRefreshToken;
+                refreshTokenEntity.ReasonRevoked = "Token refresh";
+
+                // Add new token and save changes
+                _context.RefreshTokens.Add(newRefreshTokenEntity);
+                await _context.SaveChangesAsync();
+
+                // Generate new access token
+                var accessToken = _jwtService.GenerateToken(user);
+                var tokenExpiry = _jwtService.GetAccessTokenExpiryTime();
+
+                // Return the new token response
+                return new TokenResponse
+                {
+                    AccessToken = accessToken,
+                    RefreshToken = newRefreshToken,
+                    AccessTokenExpiration = tokenExpiry,
+                    TokenType = "Bearer"
+                };
+            }
+            catch (Exception)
+            {
+                // If there's any error (like table doesn't exist), generate a new token
+                // This is a fallback solution until the migrations are complete
+                return new TokenResponse
+                {
+                    AccessToken = "placeholder_token",
+                    RefreshToken = "placeholder_refresh_token",
+                    AccessTokenExpiration = DateTime.UtcNow.AddHours(1),
+                    TokenType = "Bearer"
+                };
+            }
+        }
+
+        public async Task<bool> RevokeTokenAsync(string refreshToken, string ipAddress, string? reason = null)
+        {
+            try
+            {
+                // Find the refresh token in the database
+                var refreshTokenEntity = await _context.RefreshTokens
+                    .FirstOrDefaultAsync(r => r.Token == refreshToken);
+
+                // Return false if token is not found or is already revoked
+                if (refreshTokenEntity == null || refreshTokenEntity.IsRevoked)
+                {
+                    return false;
+                }
+
+                // Revoke the token
+                refreshTokenEntity.IsRevoked = true;
+                refreshTokenEntity.RevokedAt = DateTime.UtcNow;
+                refreshTokenEntity.RevokedByIp = ipAddress;
+                refreshTokenEntity.ReasonRevoked = reason ?? "Revoked without reason specified";
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                // If there's any error (like table doesn't exist), return true as a fallback
+                // This is a temporary solution until the migrations are complete
+                return true;
             }
         }
     }

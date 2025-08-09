@@ -83,10 +83,98 @@ namespace MultiDeptReportingTool.Controllers
 
         [HttpPost("logout")]
         [Authorize]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
-            // In a real application, you might want to blacklist the token
+            // Get the refresh token from the request
+            var refreshToken = Request.Cookies["refreshToken"];
+            
+            // If no refresh token, still return success to client
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return Ok(new { message = "Logged out successfully" });
+            }
+            
+            // Revoke the token
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "::1";
+            await _authService.RevokeTokenAsync(refreshToken, ipAddress, "User logout");
+            
+            // Remove refresh token cookie
+            Response.Cookies.Delete("refreshToken");
+            
             return Ok(new { message = "Logged out successfully" });
+        }
+        
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            // Get the refresh token from the request or cookie
+            var refreshToken = request.RefreshToken;
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                refreshToken = Request.Cookies["refreshToken"];
+            }
+            
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return BadRequest(new { message = "Refresh token is required" });
+            }
+            
+            // Get client's IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "::1";
+            
+            // Refresh the token
+            var response = await _authService.RefreshTokenAsync(refreshToken, ipAddress);
+            if (response == null)
+            {
+                return Unauthorized(new { message = "Invalid or expired refresh token" });
+            }
+            
+            // Set refresh token in cookie
+            SetRefreshTokenCookie(response.RefreshToken);
+            
+            return Ok(response);
+        }
+        
+        [HttpPost("revoke-token")]
+        [Authorize]
+        public async Task<IActionResult> RevokeToken([FromBody] RefreshTokenRequest request)
+        {
+            // Get the refresh token from the request or cookie
+            var refreshToken = request.RefreshToken;
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                refreshToken = Request.Cookies["refreshToken"];
+            }
+            
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return BadRequest(new { message = "Refresh token is required" });
+            }
+            
+            // Get client's IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "::1";
+            
+            // Revoke the token
+            var result = await _authService.RevokeTokenAsync(refreshToken, ipAddress, "Revoked by user");
+            if (!result)
+            {
+                return BadRequest(new { message = "Token not found or already revoked" });
+            }
+            
+            return Ok(new { message = "Token revoked successfully" });
+        }
+        
+        private void SetRefreshTokenCookie(string refreshToken)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true, // Cannot be accessed by client-side script
+                Secure = true,   // Only sent over HTTPS
+                SameSite = SameSiteMode.Strict, // Prevents CSRF
+                Expires = DateTime.UtcNow.AddDays(7) // 7 days expiry
+            };
+            
+            Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }
     }
 }
