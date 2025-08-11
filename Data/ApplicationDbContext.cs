@@ -35,6 +35,16 @@ namespace MultiDeptReportingTool.Data
         public DbSet<SessionActivity> SessionActivities { get; set; }
         public DbSet<DeviceFingerprint> DeviceFingerprints { get; set; }
         public DbSet<SessionConfiguration> SessionConfigurations { get; set; }
+        
+        // Phase 6.1: GDPR Compliance
+        public DbSet<ConsentRecord> ConsentRecords { get; set; }
+        public DbSet<ProcessingActivity> ProcessingActivities { get; set; }
+        public DbSet<DataBreach> DataBreaches { get; set; }
+        public DbSet<RetentionPolicy> RetentionPolicies { get; set; }
+        public DbSet<PrivacyImpactAssessment> PrivacyImpactAssessments { get; set; }
+        public DbSet<DataProcessingLog> DataProcessingLogs { get; set; }
+        public DbSet<DataExportRequest> DataExportRequests { get; set; }
+        public DbSet<DataDeletionRequest> DataDeletionRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -65,6 +75,16 @@ namespace MultiDeptReportingTool.Data
             ConfigureSessionActivities(modelBuilder);
             ConfigureDeviceFingerprints(modelBuilder);
             ConfigureSessionConfigurations(modelBuilder);
+            
+            // Phase 6.1: GDPR Compliance
+            ConfigureConsentRecords(modelBuilder);
+            ConfigureProcessingActivities(modelBuilder);
+            ConfigureDataBreaches(modelBuilder);
+            ConfigureRetentionPolicies(modelBuilder);
+            ConfigurePrivacyImpactAssessments(modelBuilder);
+            ConfigureDataProcessingLogs(modelBuilder);
+            ConfigureDataExportRequests(modelBuilder);
+            ConfigureDataDeletionRequests(modelBuilder);
 
             // Seed initial data
             SeedData(modelBuilder);
@@ -455,6 +475,166 @@ namespace MultiDeptReportingTool.Data
                       .WithOne(u => u.SessionConfiguration)
                       .HasForeignKey<SessionConfiguration>(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
+        // Phase 6.1: GDPR Compliance Configuration Methods
+        private void ConfigureConsentRecords(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ConsentRecord>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired();
+                entity.Property(e => e.Purpose).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.LegalBasis).HasMaxLength(200);
+                entity.Property(e => e.Source).HasMaxLength(50);
+                entity.Property(e => e.IpAddress).HasMaxLength(45);
+                entity.Property(e => e.UserAgent).HasMaxLength(500);
+                
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasIndex(e => new { e.UserId, e.ConsentType, e.IsActive });
+            });
+        }
+
+        private void ConfigureProcessingActivities(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ProcessingActivity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.DataController).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.DataProcessor).HasMaxLength(200);
+                entity.Property(e => e.Purpose).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.LegalBasis).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Recipients).HasMaxLength(500);
+                entity.Property(e => e.ThirdCountryTransfers).HasMaxLength(500);
+                entity.Property(e => e.SecurityMeasures).HasMaxLength(1000);
+                entity.Property(e => e.CreatedBy).HasMaxLength(100);
+                
+                entity.HasIndex(e => e.Name);
+                entity.HasIndex(e => e.IsActive);
+            });
+        }
+
+        private void ConfigureDataBreaches(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<DataBreach>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.RootCause).HasMaxLength(1000);
+                entity.Property(e => e.ImpactAssessment).HasMaxLength(2000);
+                entity.Property(e => e.ContainmentMeasures).HasMaxLength(2000);
+                entity.Property(e => e.ReportedBy).IsRequired().HasMaxLength(100);
+                
+                entity.HasIndex(e => e.DetectedDate);
+                entity.HasIndex(e => e.Severity);
+                entity.HasIndex(e => e.Status);
+            });
+        }
+
+        private void ConfigureRetentionPolicies(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<RetentionPolicy>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.DataType).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.LegalBasis).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                
+                entity.HasIndex(e => e.DataType);
+                entity.HasIndex(e => e.IsActive);
+            });
+        }
+
+        private void ConfigurePrivacyImpactAssessments(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PrivacyImpactAssessment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ProjectName).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.DataController).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.RiskAssessment).IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.Assessor).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Notes).HasMaxLength(2000);
+                
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.RiskLevel);
+            });
+        }
+
+        private void ConfigureDataProcessingLogs(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<DataProcessingLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired();
+                entity.Property(e => e.Activity).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Purpose).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.LegalBasis).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.DataType).HasMaxLength(100);
+                entity.Property(e => e.IpAddress).HasMaxLength(45);
+                entity.Property(e => e.UserAgent).HasMaxLength(500);
+                entity.Property(e => e.Details).HasMaxLength(1000);
+                
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasIndex(e => new { e.UserId, e.Timestamp });
+                entity.HasIndex(e => e.Activity);
+            });
+        }
+
+        private void ConfigureDataExportRequests(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<DataExportRequest>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired();
+                entity.Property(e => e.RequestReason).HasMaxLength(200);
+                entity.Property(e => e.ExportFilePath).HasMaxLength(500);
+                entity.Property(e => e.ExportFormat).HasMaxLength(50);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasIndex(e => new { e.UserId, e.RequestDate });
+                entity.HasIndex(e => e.Status);
+            });
+        }
+
+        private void ConfigureDataDeletionRequests(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<DataDeletionRequest>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired();
+                entity.Property(e => e.Reason).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.DeletedDataSummary).HasMaxLength(1000);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.ProcessedBy).HasMaxLength(100);
+                
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasIndex(e => new { e.UserId, e.RequestDate });
+                entity.HasIndex(e => e.Status);
             });
         }
 

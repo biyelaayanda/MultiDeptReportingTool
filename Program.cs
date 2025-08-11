@@ -96,6 +96,11 @@ builder.Services.AddScoped<ISessionManagementService, SessionManagementService>(
 builder.Services.AddScoped<IFileSecurityService, FileSecurityService>();
 builder.Services.AddHttpClient<FileSecurityService>();
 
+// Register Phase 6.1: GDPR Compliance Services
+builder.Services.AddScoped<IGdprComplianceService, GdprComplianceService>();
+
+// Phase 6.2: Disaster Recovery Services - Implementation pending
+
 // Register background services
 builder.Services.AddHostedService<TokenCleanupService>();
 
