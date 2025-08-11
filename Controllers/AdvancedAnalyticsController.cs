@@ -370,6 +370,60 @@ namespace MultiDeptReportingTool.Controllers
 
         #endregion
 
+        #region Batch Predictions API
+
+        /// <summary>
+        /// Generate multiple predictions based on frontend request format
+        /// </summary>
+        [HttpPost("predictions/batch")]
+        public async Task<ActionResult<List<PredictionResultDto>>> GenerateBatchPredictions(
+            [FromBody] BatchPredictionRequestDto request)
+        {
+            try
+            {
+                _logger.LogInformation($"Generating batch predictions for {request.Departments.Count} departments and {request.Metrics.Count} metrics");
+                
+                var predictions = new List<PredictionResultDto>();
+                
+                // Handle 'all' departments by getting all department names
+                var departmentsToProcess = request.Departments.Contains("all") || request.Departments.Count == 0
+                    ? new List<string> { "Sales", "Marketing", "Operations", "HR", "Finance" }
+                    : request.Departments;
+
+                // Generate predictions for each department and metric combination
+                foreach (var department in departmentsToProcess)
+                {
+                    foreach (var metric in request.Metrics)
+                    {
+                        try
+                        {
+                            var prediction = await _mlService.GenerateAdvancedPredictionAsync(
+                                metric, 
+                                department, 
+                                Math.Max(1, request.Timeframe / 30), // Convert days to months approximation
+                                "auto");
+                            
+                            predictions.Add(prediction);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, $"Failed to generate prediction for {department} - {metric}");
+                            // Continue with other predictions rather than failing completely
+                        }
+                    }
+                }
+
+                return Ok(predictions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating batch predictions");
+                return StatusCode(500, new { error = "Failed to generate predictions", details = ex.Message });
+            }
+        }
+
+        #endregion
+
         #region Comprehensive AI Dashboard
 
         /// <summary>
@@ -524,6 +578,14 @@ namespace MultiDeptReportingTool.Controllers
     {
         public List<string> Departments { get; set; } = new();
         public int ForecastMonths { get; set; } = 6;
+    }
+
+    public class BatchPredictionRequestDto
+    {
+        public List<string> Departments { get; set; } = new();
+        public List<string> Metrics { get; set; } = new();
+        public int Timeframe { get; set; } = 30;
+        public decimal ConfidenceLevel { get; set; } = 0.85m;
     }
 
     public class CorrelationRequestDto

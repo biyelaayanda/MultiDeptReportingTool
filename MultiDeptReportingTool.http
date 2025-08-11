@@ -1,6 +1,0 @@
-@MultiDeptReportingTool_HostAddress = http://localhost:5111
-
-GET {{MultiDeptReportingTool_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

@@ -13,8 +13,7 @@ namespace MultiDeptReportingTool.Services.AI
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<MLPredictionService> _logger;
-        private readonly Random _random = new();
-
+        
         public MLPredictionService(ApplicationDbContext context, ILogger<MLPredictionService> logger)
         {
             _context = context;
@@ -466,7 +465,7 @@ namespace MultiDeptReportingTool.Services.AI
                         Title = $"Key Insight: {theme}",
                         Description = $"Analysis reveals {theme} as a significant theme across documents",
                         Category = "Theme Analysis",
-                        ImportanceScore = _random.Next(70, 95),
+                        ImportanceScore = Math.Min(95, 70 + (themes.Count(t => t.Contains(theme, StringComparison.OrdinalIgnoreCase)) * 5)),
                         SupportingEvidence = GenerateEvidence(theme, documents),
                         ActionableRecommendations = GenerateRecommendations(theme)
                     });
@@ -796,7 +795,7 @@ namespace MultiDeptReportingTool.Services.AI
 
             while (current <= endDate)
             {
-                var variance = _random.Next(-1, 2); // Small staff changes
+                var variance = (current.Month % 3 == 0) ? 1 : 0; // Quarterly staff adjustments based on pattern
                 var staffCount = Math.Max(1, baseCount + variance);
                 
                 data.Add(new DataPointDto
@@ -861,43 +860,36 @@ namespace MultiDeptReportingTool.Services.AI
 
         private List<DataPointDto> GenerateBaselineData(string metric, string department, DateTime startDate, DateTime endDate)
         {
-            var data = new List<DataPointDto>();
-            var current = startDate;
-            var baseValue = metric.ToLower() switch
+            // Provide minimal baseline data to prevent empty collection errors
+            // This ensures the AI dashboard has basic data structure even when historical data is sparse
+            var baselineData = new List<DataPointDto>();
+            
+            // Generate monthly data points for the requested range
+            var currentDate = startDate;
+            while (currentDate <= endDate)
             {
-                "efficiency" or "completion_rate" => _random.Next(70, 90),
-                "budget" or "budget_utilization" => _random.Next(10000, 50000),
-                "workload" or "report_count" => _random.Next(10, 50),
-                "staff_count" => _random.Next(5, 20),
-                _ => _random.Next(50, 100)
-            };
-
-            var interval = (endDate - startDate).TotalDays > 90 ? TimeSpan.FromDays(30) : TimeSpan.FromDays(7);
-
-            while (current <= endDate)
-            {
-                var variance = metric.ToLower() switch
+                // Conservative baseline values based on metric type
+                double baseValue = 100.0;
+                if (metric.ToLower().Contains("performance")) baseValue = 85.0;
+                else if (metric.ToLower().Contains("efficiency")) baseValue = 75.0;
+                else if (metric.ToLower().Contains("productivity")) baseValue = 90.0;
+                
+                // Apply simple seasonal adjustment
+                var seasonalFactor = 1.0 + (Math.Sin((currentDate.Month - 1) * Math.PI / 6) * 0.1);
+                var value = baseValue * seasonalFactor;
+                
+                baselineData.Add(new DataPointDto
                 {
-                    "efficiency" or "completion_rate" => _random.Next(-5, 8),
-                    "budget" => _random.Next(-2000, 3000),
-                    "workload" => _random.Next(-3, 8),
-                    "staff_count" => _random.Next(-1, 2),
-                    _ => _random.Next(-10, 10)
-                };
-
-                data.Add(new DataPointDto
-                {
-                    Date = current,
-                    Value = Math.Max(0, baseValue + variance),
-                    Label = current.ToString("yyyy-MM-dd"),
-                    Category = metric
+                    Date = currentDate,
+                    Value = (decimal)value,
+                    Label = $"{metric} - {currentDate:MMM yyyy}",
+                    Category = department
                 });
                 
-                current = current.Add(interval);
-                baseValue = Math.Max(1, baseValue + variance / 3); // Gradual baseline drift
+                currentDate = currentDate.AddMonths(1);
             }
-
-            return data;
+            
+            return baselineData;
         }
 
         private string SelectOptimalAlgorithm(List<DataPointDto> data)
@@ -925,7 +917,7 @@ namespace MultiDeptReportingTool.Services.AI
                     _ => 0.5m
                 };
 
-                var predictedValue = Math.Max(0, lastValue + (trend * i) + _random.Next(-2, 2));
+                var predictedValue = Math.Max(0, lastValue + (trend * i));
                 
                 predictions.Add(new DataPointDto
                 {
@@ -1058,8 +1050,20 @@ namespace MultiDeptReportingTool.Services.AI
 
         private async Task<decimal> GetCurrentMetricValue(string metric, string department)
         {
-            // Simulate current metric value retrieval
-            return _random.Next(50, 100);
+            // Get actual current metric value from latest reports
+            var latestReport = await _context.Reports
+                .Include(r => r.Department)
+                .Include(r => r.ReportData)
+                .Where(r => r.Department.Name == department)
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync();
+            
+            if (latestReport == null) return 75m; // Default if no data
+            
+            var metricData = latestReport.ReportData
+                .FirstOrDefault(rd => rd.FieldName.ToLower().Contains(metric.ToLower()));
+            
+            return metricData?.NumericValue ?? 75m;
         }
 
         private decimal CalculateGrowthRate(List<DataPointDto> data)
@@ -1120,13 +1124,33 @@ namespace MultiDeptReportingTool.Services.AI
 
         private async Task<Dictionary<string, int>> AnalyzeSkillGaps(string department)
         {
-            // Simulate skill gap analysis
+            // Calculate skill gaps based on department performance patterns
+            var recentReports = await _context.Reports
+                .Include(r => r.Department)
+                .Include(r => r.ReportData)
+                .Where(r => r.Department.Name == department && r.CreatedAt >= DateTime.UtcNow.AddMonths(-6))
+                .ToListAsync();
+            
+            var efficiencyData = recentReports
+                .SelectMany(r => r.ReportData)
+                .Where(rd => rd.FieldName.ToLower().Contains("efficiency"))
+                .Select(rd => rd.NumericValue ?? 75m);
+            
+            var avgEfficiency = efficiencyData.Any() ? efficiencyData.Average() : 75m;
+            var avgCompletion = 80m; // Default completion rate
+            
+            // Calculate gaps based on performance metrics
+            var technicalGap = avgEfficiency < 80 ? (int)Math.Ceiling((80 - avgEfficiency) / 20) : 0;
+            var leadershipGap = avgCompletion < 85 ? (int)Math.Ceiling((85 - avgCompletion) / 25) : 0;
+            var communicationGap = (technicalGap + leadershipGap) / 2;
+            var dataAnalysisGap = department.Contains("IT", StringComparison.OrdinalIgnoreCase) ? technicalGap + 1 : technicalGap;
+            
             return new Dictionary<string, int>
             {
-                { "Technical Skills", _random.Next(1, 5) },
-                { "Leadership", _random.Next(1, 3) },
-                { "Communication", _random.Next(1, 4) },
-                { "Data Analysis", _random.Next(1, 6) }
+                { "Technical Skills", Math.Min(5, technicalGap) },
+                { "Leadership", Math.Min(3, leadershipGap) },
+                { "Communication", Math.Min(4, communicationGap) },
+                { "Data Analysis", Math.Min(6, dataAnalysisGap) }
             };
         }
 
@@ -1154,17 +1178,23 @@ namespace MultiDeptReportingTool.Services.AI
 
         private string IdentifyPossibleCause(DataPointDto anomaly, List<DataPointDto> allData)
         {
-            // Simplified cause identification
-            var causes = new[]
-            {
-                "Seasonal variation",
-                "Data entry error",
-                "System maintenance",
-                "External market factors",
-                "Process changes"
-            };
+            // Analyze anomaly based on its characteristics
+            var mean = allData.Average(d => d.Value);
+            var isPositive = anomaly.Value > mean;
+            var dayOfWeek = anomaly.Date.DayOfWeek;
+            var month = anomaly.Date.Month;
             
-            return causes[_random.Next(causes.Length)];
+            // Logic-based cause identification
+            if (month == 12 || month == 1)
+                return "Seasonal variation";
+            else if (dayOfWeek == DayOfWeek.Monday || dayOfWeek == DayOfWeek.Friday)
+                return "Weekly pattern variation";
+            else if (isPositive && anomaly.Value > mean * 1.5m)
+                return "Exceptional performance period";
+            else if (!isPositive && anomaly.Value < mean * 0.7m)
+                return "Process bottleneck or resource constraint";
+            else
+                return "Data quality issue";
         }
 
         private List<string> GenerateAnomalyActions(string severity, string cause)
@@ -1249,6 +1279,9 @@ namespace MultiDeptReportingTool.Services.AI
 
         private string IdentifyDominantPattern(Dictionary<string, decimal> seasonalFactors)
         {
+            if (!seasonalFactors.Any())
+                return "No seasonal patterns detected";
+                
             var maxMonth = seasonalFactors.OrderByDescending(f => f.Value).First();
             var minMonth = seasonalFactors.OrderBy(f => f.Value).First();
             
@@ -1268,8 +1301,26 @@ namespace MultiDeptReportingTool.Services.AI
 
         private CorrelationDto CalculateCorrelation(List<DataPointDto> dataA, List<DataPointDto> dataB)
         {
-            // Simplified correlation calculation
-            var correlation = (decimal)(_random.NextDouble() * 2 - 1); // Random between -1 and 1
+            // Calculate actual correlation between datasets
+            decimal correlation = 0m;
+            
+            if (dataA.Count > 1 && dataB.Count > 1 && dataA.Count == dataB.Count)
+            {
+                var valuesA = dataA.Select(d => (double)d.Value).ToArray();
+                var valuesB = dataB.Select(d => (double)d.Value).ToArray();
+                
+                var avgA = valuesA.Average();
+                var avgB = valuesB.Average();
+                
+                var numerator = valuesA.Zip(valuesB, (a, b) => (a - avgA) * (b - avgB)).Sum();
+                var denomA = Math.Sqrt(valuesA.Sum(a => Math.Pow(a - avgA, 2)));
+                var denomB = Math.Sqrt(valuesB.Sum(b => Math.Pow(b - avgB, 2)));
+                
+                if (denomA != 0 && denomB != 0)
+                {
+                    correlation = (decimal)(numerator / (denomA * denomB));
+                }
+            }
             
             var strength = Math.Abs(correlation) switch
             {
@@ -1399,9 +1450,12 @@ namespace MultiDeptReportingTool.Services.AI
 
         private List<string> GenerateEvidence(string theme, List<string> documents)
         {
+            var themeOccurrences = documents.Count(d => d.Contains(theme, StringComparison.OrdinalIgnoreCase));
+            var frequency = documents.Count > 0 ? (themeOccurrences * 100 / documents.Count) : 0;
+            
             return new List<string>
             {
-                $"Theme '{theme}' appears in {_random.Next(20, 80)}% of analyzed documents",
+                $"Theme '{theme}' appears in {frequency}% of analyzed documents",
                 $"Strong correlation with performance metrics",
                 $"Consistent pattern across multiple departments"
             };
@@ -1434,7 +1488,14 @@ namespace MultiDeptReportingTool.Services.AI
         {
             return datasets.ToDictionary(
                 kv => kv.Key,
-                kv => (decimal)_random.NextDouble()
+                kv => {
+                    // Calculate importance based on variance and range
+                    if (!kv.Value.Any()) return 0.5m;
+                    var avg = kv.Value.Average();
+                    var variance = kv.Value.Sum(x => (double)Math.Pow((double)(x - avg), 2)) / kv.Value.Count;
+                    var range = kv.Value.Max() - kv.Value.Min();
+                    return Math.Min(1m, ((decimal)variance / 1000m) + (range / 10000m));
+                }
             );
         }
 
@@ -1451,9 +1512,9 @@ namespace MultiDeptReportingTool.Services.AI
                     {
                         MetricA = keys[i],
                         MetricB = keys[j],
-                        CorrelationCoefficient = (decimal)(_random.NextDouble() * 2 - 1),
+                        CorrelationCoefficient = CalculateActualCorrelation(datasets[keys[i]], datasets[keys[j]]),
                         CorrelationStrength = "Moderate",
-                        Interpretation = "Simulated correlation",
+                        Interpretation = "Calculated correlation",
                         PValue = 0.05m,
                         IsStatisticallySignificant = true
                     });
@@ -1461,6 +1522,21 @@ namespace MultiDeptReportingTool.Services.AI
             }
             
             return correlations;
+        }
+
+        private decimal CalculateActualCorrelation(List<decimal> valuesA, List<decimal> valuesB)
+        {
+            if (valuesA.Count != valuesB.Count || valuesA.Count == 0)
+                return 0m;
+            
+            var avgA = valuesA.Average();
+            var avgB = valuesB.Average();
+            
+            var numerator = valuesA.Zip(valuesB, (a, b) => (a - avgA) * (b - avgB)).Sum();
+            var denomA = (decimal)Math.Sqrt((double)valuesA.Sum(a => (a - avgA) * (a - avgA)));
+            var denomB = (decimal)Math.Sqrt((double)valuesB.Sum(b => (b - avgB) * (b - avgB)));
+            
+            return denomA != 0 && denomB != 0 ? numerator / (denomA * denomB) : 0m;
         }
 
         private Dictionary<string, decimal> CalculatePrincipalComponents(Dictionary<string, List<decimal>> datasets)
@@ -1475,6 +1551,17 @@ namespace MultiDeptReportingTool.Services.AI
 
         private List<string> GenerateMultivariateFindings(Dictionary<string, decimal> variableImportance, List<CorrelationDto> correlations)
         {
+            if (!variableImportance.Any() || !correlations.Any())
+            {
+                return new List<string>
+                {
+                    "Insufficient data for multivariate analysis",
+                    "Need more historical data points",
+                    "Continue data collection for better insights",
+                    "Analysis will improve with additional data"
+                };
+            }
+            
             var topVariable = variableImportance.OrderByDescending(v => v.Value).First();
             var strongestCorrelation = correlations.OrderByDescending(c => Math.Abs(c.CorrelationCoefficient)).First();
             
@@ -1544,10 +1631,35 @@ namespace MultiDeptReportingTool.Services.AI
 
         private async Task<Dictionary<string, decimal>> GetCurrentResourceAllocation(List<string> departments)
         {
-            return departments.ToDictionary(
-                d => d,
-                d => (decimal)_random.Next(50000, 200000)
-            );
+            var allocations = new Dictionary<string, decimal>();
+            
+            foreach (var department in departments)
+            {
+                // Calculate allocation based on recent report performance data
+                var recentReports = await _context.Reports
+                    .Include(r => r.Department)
+                    .Include(r => r.ReportData)
+                    .Where(r => r.Department.Name == department && r.CreatedAt >= DateTime.UtcNow.AddMonths(-3))
+                    .ToListAsync();
+                
+                if (recentReports.Any())
+                {
+                    var efficiencyData = recentReports
+                        .SelectMany(r => r.ReportData)
+                        .Where(rd => rd.FieldName.ToLower().Contains("efficiency"))
+                        .Select(rd => rd.NumericValue ?? 75m);
+                    
+                    var avgEfficiency = efficiencyData.Any() ? efficiencyData.Average() : 75m;
+                    var baseAllocation = 100000m; // Base allocation
+                    allocations[department] = baseAllocation * (avgEfficiency / 100m);
+                }
+                else
+                {
+                    allocations[department] = 75000m; // Default allocation if no data
+                }
+            }
+            
+            return allocations;
         }
 
         private Dictionary<string, decimal> CalculateOptimalAllocation(Dictionary<string, decimal> current, Dictionary<string, decimal> constraints)
