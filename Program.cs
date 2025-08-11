@@ -68,6 +68,8 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IEncryptionService, EncryptionService>();
+builder.Services.AddScoped<IApiSecurityService, ApiSecurityService>();
 builder.Services.AddScoped<IDepartmentReportService, DepartmentReportService>();
 
 // Register Phase 2: Enhanced RBAC and Audit Services
@@ -96,6 +98,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowAngularApp");
+
+// Add security headers middleware first
+app.UseMiddleware<MultiDeptReportingTool.Middleware.SecurityHeadersMiddleware>();
+
+// Add API security middleware
+app.UseMiddleware<MultiDeptReportingTool.Middleware.ApiSecurityMiddleware>();
 
 app.UseRouting();
 

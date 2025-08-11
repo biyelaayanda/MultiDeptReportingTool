@@ -7,6 +7,7 @@ using MultiDeptReportingTool.Constants;
 using MultiDeptReportingTool.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace MultiDeptReportingTool.Controllers
 {
@@ -18,12 +19,18 @@ namespace MultiDeptReportingTool.Controllers
         private readonly IPermissionService _permissionService;
         private readonly IAuditService _auditService;
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<SecurityController> _logger;
 
-        public SecurityController(IPermissionService permissionService, IAuditService auditService, ApplicationDbContext context)
+        public SecurityController(
+            IPermissionService permissionService, 
+            IAuditService auditService, 
+            ApplicationDbContext context,
+            ILogger<SecurityController> logger)
         {
             _permissionService = permissionService;
             _auditService = auditService;
             _context = context;
+            _logger = logger;
         }
 
         // Permission Management Endpoints
@@ -397,6 +404,47 @@ namespace MultiDeptReportingTool.Controllers
             {
                 return Ok(new { error = ex.Message, stackTrace = ex.StackTrace });
             }
+        }
+
+        // CSP Report endpoint for Content Security Policy violations
+        [HttpPost("csp-report")]
+        [AllowAnonymous]
+        public async Task<IActionResult> CspReport([FromBody] object report)
+        {
+            try
+            {
+                _logger.LogWarning("CSP Violation reported: {Report}", JsonSerializer.Serialize(report));
+                
+                // Log CSP violation for security monitoring
+                await _auditService.LogSecurityEventAsync(
+                    action: "CSP_VIOLATION",
+                    resource: "ContentSecurityPolicy",
+                    details: JsonSerializer.Serialize(report),
+                    isSuccess: false,
+                    failureReason: "Content Security Policy violation detected",
+                    ipAddress: GetClientIpAddress(HttpContext),
+                    userAgent: HttpContext.Request.Headers["User-Agent"].FirstOrDefault(),
+                    severity: "Medium"
+                );
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to process CSP report");
+                return Ok(); // Always return OK for CSP reports
+            }
+        }
+
+        private string GetClientIpAddress(HttpContext context)
+        {
+            var xForwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(xForwardedFor))
+            {
+                return xForwardedFor.Split(',').First().Trim();
+            }
+
+            return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         }
     }
 

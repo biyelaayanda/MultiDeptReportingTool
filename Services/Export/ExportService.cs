@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using MultiDeptReportingTool.Services.Analytics;
+using MultiDeptReportingTool.Services.Interfaces;
 using MultiDeptReportingTool.DTOs.Export;
 using MultiDeptReportingTool.DTOs.Analytics;
 using PdfSharpCore.Drawing;
@@ -20,12 +21,20 @@ namespace MultiDeptReportingTool.Services.Export
     public class ExportService : IExportService
     {
         private readonly IAnalyticsService _analyticsService;
+        private readonly IEncryptionService _encryptionService;
         private readonly ILogger<ExportService> _logger;
+        private readonly IConfiguration _configuration;
 
-        public ExportService(IAnalyticsService analyticsService, ILogger<ExportService> logger)
+        public ExportService(
+            IAnalyticsService analyticsService, 
+            IEncryptionService encryptionService,
+            ILogger<ExportService> logger,
+            IConfiguration configuration)
         {
             _analyticsService = analyticsService;
+            _encryptionService = encryptionService;
             _logger = logger;
+            _configuration = configuration;
             
             // EPPlus license will be set by environment variable or app.config
             // For development purposes, this should work without explicit license setting
@@ -57,14 +66,35 @@ namespace MultiDeptReportingTool.Services.Export
                 _logger?.LogInformation("Generating PDF report");
                 var pdfBytes = GeneratePdfReport(dashboardData);
                 _logger?.LogInformation($"Successfully generated PDF with {pdfBytes.Length} bytes");
+
+                // Check if encryption is requested
+                var fileName = $"executive_dashboard_report_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                var finalData = pdfBytes;
+
+                if (request.EncryptFile && _configuration.GetValue<bool>("Export:EnableEncryption", true))
+                {
+                    try
+                    {
+                        _logger?.LogInformation("Encrypting export file");
+                        finalData = await _encryptionService.EncryptFileAsync(pdfBytes, fileName);
+                        fileName = fileName.Replace(".pdf", ".enc");
+                        _logger?.LogInformation("Successfully encrypted export file");
+                    }
+                    catch (Exception encEx)
+                    {
+                        _logger?.LogError(encEx, "Failed to encrypt export file");
+                        // Continue with unencrypted file if encryption fails
+                    }
+                }
                 
                 return new ExportResponseDto
                 {
                     Success = true,
-                    FileData = pdfBytes,
-                    FileName = $"executive_dashboard_report_{DateTime.Now:yyyyMMdd_HHmmss}.pdf",
-                    ContentType = "application/pdf",
-                    Message = "PDF generated successfully"
+                    FileData = finalData,
+                    FileName = fileName,
+                    ContentType = request.EncryptFile && finalData != pdfBytes ? "application/octet-stream" : "application/pdf",
+                    Message = "PDF generated successfully" + (finalData != pdfBytes ? " and encrypted" : ""),
+                    IsEncrypted = finalData != pdfBytes
                 };
             }
             catch (Exception ex)

@@ -21,6 +21,20 @@ namespace MultiDeptReportingTool.Controllers.DepartmentSpecific
             _departmentReportService = departmentReportService;
         }
 
+        [HttpGet("debug/auth")]
+        [AllowAnonymous]
+        public ActionResult GetAuthenticationDebug()
+        {
+            return Ok(new
+            {
+                IsAuthenticated = User.Identity?.IsAuthenticated ?? false,
+                AuthenticationType = User.Identity?.AuthenticationType,
+                Name = User.Identity?.Name,
+                Claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList(),
+                Headers = Request.Headers.Select(h => new { h.Key, Value = h.Value.ToString() }).ToList()
+            });
+        }
+
         [HttpPost("reports")]
         public async Task<ActionResult<HRReportResponseDto>> CreateHRReport([FromBody] CreateHRReportDto createDto)
         {
@@ -74,14 +88,24 @@ namespace MultiDeptReportingTool.Controllers.DepartmentSpecific
             {
                 var username = User.FindFirst(ClaimTypes.Name)?.Value;
                 if (string.IsNullOrEmpty(username))
-                    return Unauthorized("User not authenticated");
+                {
+                    return BadRequest(new { 
+                        error = "User not authenticated", 
+                        details = "Username not found in claims",
+                        claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList()
+                    });
+                }
 
                 var result = await _departmentReportService.GetHRReportsAsync(username, status, page, pageSize);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error retrieving HR reports: {ex.Message}");
+                return BadRequest(new { 
+                    error = "Error retrieving HR reports", 
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace 
+                });
             }
         }
 
@@ -115,14 +139,24 @@ namespace MultiDeptReportingTool.Controllers.DepartmentSpecific
             {
                 var username = User.FindFirst(ClaimTypes.Name)?.Value;
                 if (string.IsNullOrEmpty(username))
-                    return Unauthorized("User not authenticated");
+                {
+                    return BadRequest(new { 
+                        error = "User not authenticated", 
+                        details = "Username not found in claims",
+                        claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList()
+                    });
+                }
 
                 var result = await _departmentReportService.GetDepartmentAnalyticsAsync("Human Resources", username, fromDate, toDate);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error retrieving HR analytics: {ex.Message}");
+                return BadRequest(new { 
+                    error = "Error retrieving HR analytics", 
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace 
+                });
             }
         }
 
@@ -132,15 +166,27 @@ namespace MultiDeptReportingTool.Controllers.DepartmentSpecific
             try
             {
                 var username = User.FindFirst(ClaimTypes.Name)?.Value;
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                
                 if (string.IsNullOrEmpty(username))
-                    return Unauthorized("User not authenticated");
+                {
+                    return BadRequest(new { 
+                        error = "User not authenticated", 
+                        details = "Username not found in claims",
+                        claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList()
+                    });
+                }
 
                 var result = await _departmentReportService.GetDepartmentDashboardAsync("Human Resources", username);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error retrieving HR dashboard: {ex.Message}");
+                return BadRequest(new { 
+                    error = "Error retrieving HR dashboard", 
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace 
+                });
             }
         }
     }

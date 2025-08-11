@@ -22,6 +22,12 @@ namespace MultiDeptReportingTool.DTOs.Export
         public string FileName { get; set; } = string.Empty;
         public Dictionary<string, object> CustomFilters { get; set; } = new Dictionary<string, object>();
         
+        // Security and encryption options
+        public bool EncryptFile { get; set; } = false;
+        public string? EncryptionKey { get; set; }
+        public bool RequireSignature { get; set; } = false;
+        public bool WatermarkSensitive { get; set; } = true;
+        
         // User context fields (set by backend)
         public int? UserId { get; set; }
         public string? UserRole { get; set; }
@@ -44,6 +50,13 @@ namespace MultiDeptReportingTool.DTOs.Export
         public string DownloadUrl { get; set; } = string.Empty;
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
+        
+        // Security-related fields
+        public bool IsEncrypted { get; set; } = false;
+        public string? EncryptionAlgorithm { get; set; }
+        public string? SecurityHash { get; set; }
+        public string? DigitalSignature { get; set; }
+        public DateTime? ExpiresAt { get; set; }
     }
 
     /// <summary>

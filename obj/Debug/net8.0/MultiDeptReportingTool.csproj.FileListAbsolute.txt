@@ -201,12 +201,6 @@ C:\Users\biyelaa\source\repos\SideProjects\MultiDeptReportingTool\bin\Debug\net8
 C:\Users\biyelaa\source\repos\SideProjects\MultiDeptReportingTool\bin\Debug\net8.0\create-department-leads.json
 C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\appsettings.Development.json
 C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\appsettings.json
-C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\create-ceo.json
-C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\create-department-leads.json
-C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\create-executive.json
-C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\dashboard_with_topperformers.json
-C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\test-executive-login.json
-C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\test-login.json
 C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\MultiDeptReportingTool.exe
 C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\MultiDeptReportingTool.deps.json
 C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\MultiDeptReportingTool.runtimeconfig.json
@@ -401,6 +395,3 @@ C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\obj\Debug\net8.
 C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\BCrypt.Net-Next.dll
 C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\Konscious.Security.Cryptography.Argon2.dll
 C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\Konscious.Security.Cryptography.Blake2.dll
-C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\login.json
-C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\temp_advanced_prediction.json
-C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\temp_login.json

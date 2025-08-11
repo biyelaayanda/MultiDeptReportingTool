@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace MultiDeptReportingTool.Models
 {
     public class SecurityAuditLog
@@ -39,7 +41,10 @@ namespace MultiDeptReportingTool.Models
         public string? Metadata { get; set; } // JSON for additional data
         
         // Navigation properties
+        [ForeignKey("UserId")]
         public virtual Users? User { get; set; }
+        
+        [ForeignKey("ResolvedByUserId")]
         public virtual Users? ResolvedByUser { get; set; }
     }
 
