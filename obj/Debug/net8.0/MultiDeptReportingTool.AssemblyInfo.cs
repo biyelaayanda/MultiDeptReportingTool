@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MultiDeptReportingTool")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+336deb053b05fd918ea4f2abd6cae55e55c0a52b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ef8885c2030e5676226f0c00b830ebb746bf3077")]
 [assembly: System.Reflection.AssemblyProductAttribute("MultiDeptReportingTool")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MultiDeptReportingTool")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

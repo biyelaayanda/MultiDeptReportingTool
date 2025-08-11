@@ -29,6 +29,12 @@ namespace MultiDeptReportingTool.Data
         public DbSet<SecurityAuditLog> SecurityAuditLogs { get; set; }
         public DbSet<SecurityAlert> SecurityAlerts { get; set; }
         public DbSet<SystemEvent> SystemEvents { get; set; }
+        
+        // Phase 4.2: Session Management
+        public DbSet<UserSession> UserSessions { get; set; }
+        public DbSet<SessionActivity> SessionActivities { get; set; }
+        public DbSet<DeviceFingerprint> DeviceFingerprints { get; set; }
+        public DbSet<SessionConfiguration> SessionConfigurations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -53,6 +59,12 @@ namespace MultiDeptReportingTool.Data
             ConfigureSecurityAuditLogs(modelBuilder);
             ConfigureSecurityAlerts(modelBuilder);
             ConfigureSystemEvents(modelBuilder);
+            
+            // Phase 4.2: Session Management
+            ConfigureUserSessions(modelBuilder);
+            ConfigureSessionActivities(modelBuilder);
+            ConfigureDeviceFingerprints(modelBuilder);
+            ConfigureSessionConfigurations(modelBuilder);
 
             // Seed initial data
             SeedData(modelBuilder);
@@ -355,6 +367,94 @@ namespace MultiDeptReportingTool.Data
                 entity.HasIndex(e => e.EventType);
                 entity.HasIndex(e => e.Level);
                 entity.HasIndex(e => e.CorrelationId);
+            });
+        }
+
+        private void ConfigureUserSessions(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<UserSession>(entity =>
+            {
+                entity.HasKey(e => e.SessionId);
+                entity.Property(e => e.SessionId).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.DeviceFingerprint).HasMaxLength(128);
+                entity.Property(e => e.IpAddress).IsRequired().HasMaxLength(45);
+                entity.Property(e => e.UserAgent).HasMaxLength(500);
+                entity.Property(e => e.DeviceType).HasMaxLength(50);
+                entity.Property(e => e.DeviceName).HasMaxLength(100);
+                entity.Property(e => e.Location).HasMaxLength(200);
+                entity.Property(e => e.RevocationReason).HasMaxLength(200);
+                entity.Property(e => e.SuspiciousReason).HasMaxLength(200);
+
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.DeviceFingerprint);
+                entity.HasIndex(e => e.IpAddress);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.ExpiresAt);
+                entity.HasIndex(e => e.CreatedAt);
+
+                entity.HasOne(e => e.User)
+                      .WithMany(u => u.Sessions)
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
+        private void ConfigureSessionActivities(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<SessionActivity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.SessionId).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.Activity).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Resource).HasMaxLength(100);
+                entity.Property(e => e.IpAddress).HasMaxLength(45);
+                entity.Property(e => e.RiskLevel).HasMaxLength(20);
+
+                entity.HasIndex(e => e.SessionId);
+                entity.HasIndex(e => e.Timestamp);
+                entity.HasIndex(e => e.Activity);
+                entity.HasIndex(e => e.RiskLevel);
+            });
+        }
+
+        private void ConfigureDeviceFingerprints(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<DeviceFingerprint>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Fingerprint).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.UserAgent).HasMaxLength(500);
+                entity.Property(e => e.ScreenResolution).HasMaxLength(50);
+                entity.Property(e => e.Timezone).HasMaxLength(100);
+                entity.Property(e => e.Language).HasMaxLength(20);
+                entity.Property(e => e.Platform).HasMaxLength(50);
+                entity.Property(e => e.ColorDepth).HasMaxLength(10);
+
+                entity.HasIndex(e => new { e.Fingerprint, e.UserId }).IsUnique();
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.IsBlocked);
+                entity.HasIndex(e => e.IsTrusted);
+
+                entity.HasOne(e => e.User)
+                      .WithMany(u => u.DeviceFingerprints)
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
+        private void ConfigureSessionConfigurations(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<SessionConfiguration>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired();
+
+                entity.HasIndex(e => e.UserId).IsUnique();
+
+                entity.HasOne(e => e.User)
+                      .WithOne(u => u.SessionConfiguration)
+                      .HasForeignKey<SessionConfiguration>(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
 

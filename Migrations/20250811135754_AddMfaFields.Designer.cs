@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MultiDeptReportingTool.Data;
 
@@ -11,9 +12,11 @@ using MultiDeptReportingTool.Data;
 namespace MultiDeptReportingTool.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250811135754_AddMfaFields")]
+    partial class AddMfaFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -185,91 +188,6 @@ namespace MultiDeptReportingTool.Migrations
                     b.HasIndex("PermissionId");
 
                     b.ToTable("DepartmentPermissions");
-                });
-
-            modelBuilder.Entity("MultiDeptReportingTool.Models.DeviceFingerprint", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ColorDepth")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<bool>("CookiesEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("DeviceName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Fingerprint")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<DateTime>("FirstSeen")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsTrusted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("JavaEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Language")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("LastSeen")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Platform")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Plugins")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ScreenResolution")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Timezone")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("UserAgent")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsBlocked");
-
-                    b.HasIndex("IsTrusted");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("Fingerprint", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("DeviceFingerprints");
                 });
 
             modelBuilder.Entity("MultiDeptReportingTool.Models.Permission", b =>
@@ -698,114 +616,6 @@ namespace MultiDeptReportingTool.Migrations
                     b.ToTable("SecurityAuditLogs");
                 });
 
-            modelBuilder.Entity("MultiDeptReportingTool.Models.SessionActivity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Activity")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)");
-
-                    b.Property<string>("Metadata")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Resource")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("RiskLevel")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("RiskReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SessionId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserAgent")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Activity");
-
-                    b.HasIndex("RiskLevel");
-
-                    b.HasIndex("SessionId");
-
-                    b.HasIndex("Timestamp");
-
-                    b.ToTable("SessionActivities");
-                });
-
-            modelBuilder.Entity("MultiDeptReportingTool.Models.SessionConfiguration", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("AllowRememberMe")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("EnableConcurrentSessionControl")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("ExtendedSessionTimeoutMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<int>("IdleTimeoutMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("LogAllSessionActivity")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("MaxConcurrentSessions")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("RequireDeviceVerification")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("SessionTimeoutMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("SessionConfigurations");
-                });
-
             modelBuilder.Entity("MultiDeptReportingTool.Models.SystemEvent", b =>
                 {
                     b.Property<int>("Id")
@@ -905,112 +715,6 @@ namespace MultiDeptReportingTool.Migrations
                     b.HasIndex("UsersId");
 
                     b.ToTable("UserPermissions");
-                });
-
-            modelBuilder.Entity("MultiDeptReportingTool.Models.UserSession", b =>
-                {
-                    b.Property<string>("SessionId")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeviceFingerprint")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<int?>("DeviceFingerprintId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("DeviceName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("DeviceType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("FailedAccessAttempts")
-                        .HasColumnType("int");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsRememberMe")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsRevoked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsSuspicious")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("LastAccessedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("LastMfaVerification")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("RefreshToken")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("RequiresMfaVerification")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("RevocationReason")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SuspiciousReason")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("UserAgent")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("SessionId");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("DeviceFingerprint");
-
-                    b.HasIndex("DeviceFingerprintId");
-
-                    b.HasIndex("ExpiresAt");
-
-                    b.HasIndex("IpAddress");
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserSessions");
                 });
 
             modelBuilder.Entity("MultiDeptReportingTool.Models.Users", b =>
@@ -1151,17 +855,6 @@ namespace MultiDeptReportingTool.Migrations
                     b.Navigation("Permission");
                 });
 
-            modelBuilder.Entity("MultiDeptReportingTool.Models.DeviceFingerprint", b =>
-                {
-                    b.HasOne("MultiDeptReportingTool.Models.Users", "User")
-                        .WithMany("DeviceFingerprints")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("MultiDeptReportingTool.Models.RefreshToken", b =>
                 {
                     b.HasOne("MultiDeptReportingTool.Models.Users", "User")
@@ -1282,28 +975,6 @@ namespace MultiDeptReportingTool.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("MultiDeptReportingTool.Models.SessionActivity", b =>
-                {
-                    b.HasOne("MultiDeptReportingTool.Models.UserSession", "Session")
-                        .WithMany()
-                        .HasForeignKey("SessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Session");
-                });
-
-            modelBuilder.Entity("MultiDeptReportingTool.Models.SessionConfiguration", b =>
-                {
-                    b.HasOne("MultiDeptReportingTool.Models.Users", "User")
-                        .WithOne("SessionConfiguration")
-                        .HasForeignKey("MultiDeptReportingTool.Models.SessionConfiguration", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("MultiDeptReportingTool.Models.UserPermission", b =>
                 {
                     b.HasOne("MultiDeptReportingTool.Models.Users", "GrantedByUser")
@@ -1334,21 +1005,6 @@ namespace MultiDeptReportingTool.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("MultiDeptReportingTool.Models.UserSession", b =>
-                {
-                    b.HasOne("MultiDeptReportingTool.Models.DeviceFingerprint", null)
-                        .WithMany("Sessions")
-                        .HasForeignKey("DeviceFingerprintId");
-
-                    b.HasOne("MultiDeptReportingTool.Models.Users", "User")
-                        .WithMany("Sessions")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("MultiDeptReportingTool.Models.Users", b =>
                 {
                     b.HasOne("MultiDeptReportingTool.Models.Department", "Department")
@@ -1371,11 +1027,6 @@ namespace MultiDeptReportingTool.Migrations
                     b.Navigation("Reports");
 
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("MultiDeptReportingTool.Models.DeviceFingerprint", b =>
-                {
-                    b.Navigation("Sessions");
                 });
 
             modelBuilder.Entity("MultiDeptReportingTool.Models.Permission", b =>
@@ -1407,8 +1058,6 @@ namespace MultiDeptReportingTool.Migrations
 
                     b.Navigation("CreatedReports");
 
-                    b.Navigation("DeviceFingerprints");
-
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("ResolvedSecurityAlerts");
@@ -1416,10 +1065,6 @@ namespace MultiDeptReportingTool.Migrations
                     b.Navigation("SecurityAlerts");
 
                     b.Navigation("SecurityAuditLogs");
-
-                    b.Navigation("SessionConfiguration");
-
-                    b.Navigation("Sessions");
 
                     b.Navigation("UserPermissions");
                 });

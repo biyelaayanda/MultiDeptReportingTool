@@ -1403,6 +1403,15 @@
           }
         }
       },
+      "Otp.NET/1.4.0": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/Otp.NET.dll": {}
+        },
+        "runtime": {
+          "lib/net8.0/Otp.NET.dll": {}
+        }
+      },
       "PdfSharpCore/1.3.65": {
         "type": "package",
         "dependencies": {
@@ -1420,6 +1429,15 @@
           "lib/net8.0/de/PdfSharpCore.resources.dll": {
             "locale": "de"
           }
+        }
+      },
+      "QRCoder/1.6.0": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/QRCoder.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/QRCoder.dll": {}
         }
       },
       "runtime.debian.8-x64.runtime.native.System.Security.Cryptography.OpenSsl/4.3.0": {
@@ -5359,6 +5377,26 @@
         "packageIcon.png"
       ]
     },
+    "Otp.NET/1.4.0": {
+      "sha512": "Fk1NKc0lWmlo6LAFYpFJInRgFKt72knRNEvxndDYoQHFwYOPXav+WEUBvQA0k4lxq5xt0SymrZ+oi0F/G40bPQ==",
+      "type": "package",
+      "path": "otp.net/1.4.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.txt",
+        "README.md",
+        "icon.png",
+        "lib/net461/Otp.NET.dll",
+        "lib/net5.0/Otp.NET.dll",
+        "lib/net6.0/Otp.NET.dll",
+        "lib/net7.0/Otp.NET.dll",
+        "lib/net8.0/Otp.NET.dll",
+        "lib/netstandard2.0/Otp.NET.dll",
+        "otp.net.1.4.0.nupkg.sha512",
+        "otp.net.nuspec"
+      ]
+    },
     "PdfSharpCore/1.3.65": {
       "sha512": "mkN1EZ1VtH4+x97DEvmno5goRU3j4myuWD7IxO9MuxRcc1iOcUfhq75RmxZSAH9dQCZhpGpLUJSkwlRRnzElAg==",
       "type": "package",
@@ -5382,6 +5420,27 @@
         "lib/netstandard2.0/de/PdfSharpCore.resources.dll",
         "pdfsharpcore.1.3.65.nupkg.sha512",
         "pdfsharpcore.nuspec"
+      ]
+    },
+    "QRCoder/1.6.0": {
+      "sha512": "XmPA81eo+oRxBuyVdswsSkTGTE1d3thfF11Z1PdD7oB56A6HU4G4AAOdySmGRMb/cljwlFTMWUtosGEnwpS6GA==",
+      "type": "package",
+      "path": "qrcoder/1.6.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/net35/QRCoder.dll",
+        "lib/net40/QRCoder.dll",
+        "lib/net5.0-windows7.0/QRCoder.dll",
+        "lib/net5.0/QRCoder.dll",
+        "lib/net6.0-windows7.0/QRCoder.dll",
+        "lib/net6.0/QRCoder.dll",
+        "lib/netstandard1.3/QRCoder.dll",
+        "lib/netstandard2.0/QRCoder.dll",
+        "nuget-icon.png",
+        "nuget-readme.md",
+        "qrcoder.1.6.0.nupkg.sha512",
+        "qrcoder.nuspec"
       ]
     },
     "runtime.debian.8-x64.runtime.native.System.Security.Cryptography.OpenSsl/4.3.0": {
@@ -9103,7 +9162,9 @@
       "Microsoft.EntityFrameworkCore.Design >= 9.0.8",
       "Microsoft.EntityFrameworkCore.SqlServer >= 9.0.8",
       "Microsoft.EntityFrameworkCore.Tools >= 9.0.8",
+      "Otp.NET >= 1.4.0",
       "PdfSharpCore >= 1.3.65",
+      "QRCoder >= 1.6.0",
       "System.IdentityModel.Tokens.Jwt >= 8.0.10",
       "itext7 >= 8.0.5"
     ]
@@ -9194,9 +9255,17 @@
             "target": "Package",
             "version": "[9.0.8, )"
           },
+          "Otp.NET": {
+            "target": "Package",
+            "version": "[1.4.0, )"
+          },
           "PdfSharpCore": {
             "target": "Package",
             "version": "[1.3.65, )"
+          },
+          "QRCoder": {
+            "target": "Package",
+            "version": "[1.6.0, )"
           },
           "System.IdentityModel.Tokens.Jwt": {
             "target": "Package",

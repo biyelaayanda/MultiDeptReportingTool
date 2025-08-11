@@ -395,3 +395,5 @@ C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\obj\Debug\net8.
 C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\BCrypt.Net-Next.dll
 C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\Konscious.Security.Cryptography.Argon2.dll
 C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\Konscious.Security.Cryptography.Blake2.dll
+C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\Otp.NET.dll
+C:\Users\biyel\source\repos\Side projects\MultiDeptReportingTool\bin\Debug\net8.0\QRCoder.dll

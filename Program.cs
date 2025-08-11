@@ -86,6 +86,16 @@ builder.Services.AddScoped<ComprehensiveDataSeedingService>();
 // Register Phase 3: Advanced Analytics & AI Services
 builder.Services.AddScoped<IMLPredictionService, MLPredictionService>();
 
+// Register Phase 4: Multi-Factor Authentication
+builder.Services.AddScoped<IMfaService, MfaService>();
+
+// Register Phase 4.2: Session Management
+builder.Services.AddScoped<ISessionManagementService, SessionManagementService>();
+
+// Register Phase 5: Attack Prevention Services
+builder.Services.AddScoped<IFileSecurityService, FileSecurityService>();
+builder.Services.AddHttpClient<FileSecurityService>();
+
 // Register background services
 builder.Services.AddHostedService<TokenCleanupService>();
 
@@ -98,6 +108,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowAngularApp");
+
+// Phase 5: Attack Prevention Middleware
+app.UseMiddleware<MultiDeptReportingTool.Middleware.WebApplicationFirewallMiddleware>();
+app.UseMiddleware<MultiDeptReportingTool.Middleware.DDoSProtectionMiddleware>();
 
 // Add security headers middleware first
 app.UseMiddleware<MultiDeptReportingTool.Middleware.SecurityHeadersMiddleware>();

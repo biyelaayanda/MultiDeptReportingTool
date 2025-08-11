@@ -86,9 +86,17 @@
               "target": "Package",
               "version": "[9.0.8, )"
             },
+            "Otp.NET": {
+              "target": "Package",
+              "version": "[1.4.0, )"
+            },
             "PdfSharpCore": {
               "target": "Package",
               "version": "[1.3.65, )"
+            },
+            "QRCoder": {
+              "target": "Package",
+              "version": "[1.6.0, )"
             },
             "System.IdentityModel.Tokens.Jwt": {
               "target": "Package",

@@ -19,6 +19,20 @@ namespace MultiDeptReportingTool.Models
         public DateTime? LastLoginAt { get; set; }
         public bool IsActive { get; set; } = true;
 
+        // Phase 4: Multi-Factor Authentication
+        public bool IsMfaEnabled { get; set; } = false;
+        public string? MfaSecret { get; set; } // TOTP secret key (encrypted)
+        public DateTime? MfaSetupAt { get; set; }
+        public string? BackupCodes { get; set; } // Encrypted backup codes (JSON array)
+        public int MfaFailedAttempts { get; set; } = 0;
+        public DateTime? MfaLockedUntil { get; set; }
+
+        // Phase 4: Session Management
+        public int MaxConcurrentSessions { get; set; } = 3;
+        public string? DeviceFingerprint { get; set; }
+        public DateTime? LastPasswordChangeAt { get; set; }
+        public bool RequirePasswordChange { get; set; } = false;
+
         // Navigation properties
         public virtual Department? Department { get; set; }
         public virtual Role? RoleEntity { get; set; } // New RBAC Role navigation property
@@ -32,5 +46,10 @@ namespace MultiDeptReportingTool.Models
         public virtual ICollection<SecurityAuditLog> SecurityAuditLogs { get; set; } = new List<SecurityAuditLog>();
         public virtual ICollection<SecurityAlert> SecurityAlerts { get; set; } = new List<SecurityAlert>();
         public virtual ICollection<SecurityAlert> ResolvedSecurityAlerts { get; set; } = new List<SecurityAlert>();
+        
+        // Phase 4.2: Session Management Navigation Properties
+        public virtual ICollection<UserSession> Sessions { get; set; } = new List<UserSession>();
+        public virtual ICollection<DeviceFingerprint> DeviceFingerprints { get; set; } = new List<DeviceFingerprint>();
+        public virtual SessionConfiguration? SessionConfiguration { get; set; }
     }
 }
